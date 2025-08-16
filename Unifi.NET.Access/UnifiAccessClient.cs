@@ -18,6 +18,8 @@ public sealed class UnifiAccessClient : IUnifiAccessClient, IDisposable
     private readonly UserService _userService;
     private readonly AccessPolicyService _accessPolicyService;
     private readonly DoorService _doorService;
+    private readonly CredentialService _credentialService;
+    private readonly DeviceService _deviceService;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="UnifiAccessClient"/> class.
@@ -53,6 +55,8 @@ public sealed class UnifiAccessClient : IUnifiAccessClient, IDisposable
         _userService = new UserService(_restClient, _configuration);
         _accessPolicyService = new AccessPolicyService(_restClient, _configuration);
         _doorService = new DoorService(_restClient, _configuration);
+        _credentialService = new CredentialService(_restClient, _configuration);
+        _deviceService = new DeviceService(_restClient, _configuration);
     }
 
     /// <summary>
@@ -72,6 +76,8 @@ public sealed class UnifiAccessClient : IUnifiAccessClient, IDisposable
         _userService = new UserService(_restClient, _configuration);
         _accessPolicyService = new AccessPolicyService(_restClient, _configuration);
         _doorService = new DoorService(_restClient, _configuration);
+        _credentialService = new CredentialService(_restClient, _configuration);
+        _deviceService = new DeviceService(_restClient, _configuration);
     }
 
     /// <inheritdoc />
@@ -82,6 +88,12 @@ public sealed class UnifiAccessClient : IUnifiAccessClient, IDisposable
 
     /// <inheritdoc />
     public IDoorService Doors => _doorService;
+
+    /// <inheritdoc />
+    public ICredentialService Credentials => _credentialService;
+
+    /// <inheritdoc />
+    public IDeviceService Devices => _deviceService;
 
     /// <summary>
     /// Disposes the client and its resources.

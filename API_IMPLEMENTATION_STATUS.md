@@ -5,13 +5,13 @@
 ## 📊 Overall Progress
 
 - **Total Endpoints**: 120+
-- **Implemented**: 19/120 (15.8%)
+- **Implemented**: 28/120 (23.3%)
 - **Tested**: 0/120 (0%)
-- **Documentation**: 19/120 (15.8%)
+- **Documentation**: 28/120 (23.3%)
 
 ### Priority Breakdown
 - **P0 (Core)**: 100% (19/19) - ✅ Users (7), ✅ Access Policies (5), ✅ Doors (7)
-- **P1 (Essential)**: 0% - Credentials, User Groups, Door Groups  
+- **P1 (Essential)**: 15% (9/60) - Partial Credentials (4 NFC, 4 User assignment, 1 PIN), Devices (1)  
 - **P2 (Extended)**: 0% - Visitors, Schedules, Holiday Groups
 - **P3 (Advanced)**: 0% - WebSockets, Webhooks, Identity, Certificates
 
@@ -47,10 +47,10 @@
 - [x] `GET /api/v1/users/{id}/access_policies` - Fetch Access Policies Assigned to User (3.20)
 
 ### User Credentials **[P1]**
-- [ ] `POST /api/v1/users/{id}/nfc_cards` - Assign NFC Card to User (3.7)
-- [ ] `DELETE /api/v1/users/{id}/nfc_cards/{card_id}` - Unassign NFC Card from User (3.8)
-- [ ] `POST /api/v1/users/{id}/pin_codes` - Assign PIN Code to User (3.9)
-- [ ] `DELETE /api/v1/users/{id}/pin_codes` - Unassign PIN Code from User (3.10)
+- [x] `POST /api/v1/users/{id}/nfc_cards` - Assign NFC Card to User (3.7)
+- [x] `DELETE /api/v1/users/{id}/nfc_cards/{card_id}` - Unassign NFC Card from User (3.8)
+- [x] `POST /api/v1/users/{id}/pin_codes` - Assign PIN Code to User (3.9)
+- [x] `DELETE /api/v1/users/{id}/pin_codes` - Unassign PIN Code from User (3.10)
 - [ ] `POST /api/v1/users/{id}/touch_passes` - Assign Touch Pass to User (3.25)
 - [ ] `DELETE /api/v1/users/{id}/touch_passes/{pass_id}` - Unassign Touch Pass from User (3.26)
 - [ ] `POST /api/v1/users/touch_passes/batch` - Batch Assign Touch Passes to Users (3.27)
@@ -126,12 +126,12 @@
 ## 📁 Section 6: Credentials (19 endpoints)
 
 ### PIN Code Management **[P1]**
-- [ ] `GET /api/v1/credentials/pin_codes/generate` - Generate PIN Code (6.1)
+- [x] `GET /api/v1/credentials/pin_codes/generate` - Generate PIN Code (6.1)
 
 ### NFC Card Management **[P1]**
-- [ ] `POST /api/v1/credentials/nfc_cards/enroll` - Enroll NFC Card (6.2)
-- [ ] `GET /api/v1/credentials/nfc_cards/enroll/{session_id}` - Fetch NFC Card Enrollment Status (6.3)
-- [ ] `DELETE /api/v1/credentials/nfc_cards/enroll/{session_id}` - Remove NFC Card Enrollment Session (6.4)
+- [x] `POST /api/v1/credentials/nfc_cards/enroll` - Enroll NFC Card (6.2)
+- [x] `GET /api/v1/credentials/nfc_cards/enroll/{session_id}` - Fetch NFC Card Enrollment Status (6.3)
+- [x] `DELETE /api/v1/credentials/nfc_cards/enroll/{session_id}` - Remove NFC Card Enrollment Session (6.4)
 - [ ] `GET /api/v1/credentials/nfc_cards/{id}` - Fetch NFC Card (6.7)
 - [ ] `GET /api/v1/credentials/nfc_cards` - Fetch All NFC Cards (6.8)
 - [ ] `DELETE /api/v1/credentials/nfc_cards/{id}` - Delete NFC Card (6.9)
@@ -177,7 +177,7 @@
 ## 📁 Section 8: Devices (3 endpoints)
 
 ### Device Management **[P2]**
-- [ ] `GET /api/v1/devices` - Fetch Devices (8.1)
+- [x] `GET /api/v1/devices` - Fetch Devices (8.1)
 - [ ] `GET /api/v1/devices/{id}/access_methods` - Fetch Access Device's Access Method Settings (8.2)
 - [ ] `PUT /api/v1/devices/{id}/access_methods` - Update Access Device's Access Method Settings (8.3)
 

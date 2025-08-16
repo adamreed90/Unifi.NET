@@ -21,4 +21,14 @@ public interface IUnifiAccessClient
     /// Gets the door service for managing doors and door groups.
     /// </summary>
     IDoorService Doors { get; }
+
+    /// <summary>
+    /// Gets the credential service for managing NFC cards and PIN codes.
+    /// </summary>
+    ICredentialService Credentials { get; }
+
+    /// <summary>
+    /// Gets the device service for managing devices.
+    /// </summary>
+    IDeviceService Devices { get; }
 }

@@ -1,4 +1,5 @@
 using Unifi.NET.Access.Models.AccessPolicies;
+using Unifi.NET.Access.Models.Credentials;
 using Unifi.NET.Access.Models.Users;
 
 namespace Unifi.NET.Access.Services;
@@ -79,4 +80,35 @@ public interface IUserService
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>List of access policies.</returns>
     Task<IEnumerable<AccessPolicyResponse>> GetUserAccessPoliciesAsync(string userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Assigns an NFC card to a user.
+    /// </summary>
+    /// <param name="userId">The user ID.</param>
+    /// <param name="request">The NFC card assignment request.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task AssignNfcCardToUserAsync(string userId, AssignNfcCardRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Unassigns an NFC card from a user.
+    /// </summary>
+    /// <param name="userId">The user ID.</param>
+    /// <param name="cardId">The NFC card ID.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task UnassignNfcCardFromUserAsync(string userId, string cardId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Assigns a PIN code to a user.
+    /// </summary>
+    /// <param name="userId">The user ID.</param>
+    /// <param name="request">The PIN code assignment request.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task AssignPinCodeToUserAsync(string userId, AssignPinCodeRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Unassigns a PIN code from a user.
+    /// </summary>
+    /// <param name="userId">The user ID.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task UnassignPinCodeFromUserAsync(string userId, CancellationToken cancellationToken = default);
 }

@@ -1,6 +1,7 @@
 using RestSharp;
 using Unifi.NET.Access.Configuration;
 using Unifi.NET.Access.Models.AccessPolicies;
+using Unifi.NET.Access.Models.Credentials;
 using Unifi.NET.Access.Models.Users;
 
 namespace Unifi.NET.Access.Services;
@@ -117,5 +118,40 @@ public sealed class UserService : BaseService, IUserService
             }).ToList(),
             ScheduleId = p.ScheduleId
         });
+    }
+
+    /// <inheritdoc />
+    public async Task AssignNfcCardToUserAsync(string userId, AssignNfcCardRequest request, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(userId);
+        ArgumentNullException.ThrowIfNull(request);
+        
+        await PutAsync<object>($"/api/v1/developer/users/{userId}/nfc_cards", request, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task UnassignNfcCardFromUserAsync(string userId, string cardId, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(userId);
+        ArgumentException.ThrowIfNullOrEmpty(cardId);
+        
+        await PutAsync<object>($"/api/v1/developer/users/{userId}/nfc_cards/delete", new { card_id = cardId }, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task AssignPinCodeToUserAsync(string userId, AssignPinCodeRequest request, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(userId);
+        ArgumentNullException.ThrowIfNull(request);
+        
+        await PutAsync<object>($"/api/v1/developer/users/{userId}/pin_codes", request, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task UnassignPinCodeFromUserAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(userId);
+        
+        await PutAsync<object>($"/api/v1/developer/users/{userId}/pin_codes", new { pin_code = "" }, cancellationToken);
     }
 }
