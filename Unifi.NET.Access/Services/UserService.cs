@@ -62,7 +62,7 @@ public sealed class UserService : BaseService, IUserService
     public async Task<IEnumerable<UserResponse>> SearchUsersAsync(string query, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(query);
-        var users = await GetAsync<List<UserResponse>>($"/api/v1/developer/users/search?query={Uri.EscapeDataString(query)}", cancellationToken);
+        var users = await GetAsync<List<UserResponse>>($"/api/v1/developer/users/search?keyword={Uri.EscapeDataString(query)}", cancellationToken);
         return users ?? new List<UserResponse>();
     }
 
