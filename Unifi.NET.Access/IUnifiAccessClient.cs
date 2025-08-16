@@ -31,4 +31,9 @@ public interface IUnifiAccessClient
     /// Gets the device service for managing devices.
     /// </summary>
     IDeviceService Devices { get; }
+
+    /// <summary>
+    /// Gets the user group service for managing user groups.
+    /// </summary>
+    IUserGroupService UserGroups { get; }
 }

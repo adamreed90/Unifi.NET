@@ -5,6 +5,7 @@ using Unifi.NET.Access.Models.AccessPolicies;
 using Unifi.NET.Access.Models.Credentials;
 using Unifi.NET.Access.Models.Devices;
 using Unifi.NET.Access.Models.Doors;
+using Unifi.NET.Access.Models.UserGroups;
 
 namespace Unifi.NET.Access.Serialization;
 
@@ -52,6 +53,27 @@ namespace Unifi.NET.Access.Serialization;
 [JsonSerializable(typeof(List<DeviceResponse>))]
 [JsonSerializable(typeof(List<List<DeviceResponse>>))]
 [JsonSerializable(typeof(UnifiApiResponse<List<List<DeviceResponse>>>))]
+// NFC Card models
+[JsonSerializable(typeof(NfcCardResponse))]
+[JsonSerializable(typeof(UpdateNfcCardRequest))]
+[JsonSerializable(typeof(ImportNfcCardsRequest))]
+[JsonSerializable(typeof(ImportNfcCardsResponse))]
+[JsonSerializable(typeof(UnifiApiResponse<List<NfcCardResponse>>))]
+[JsonSerializable(typeof(UnifiApiResponse<NfcCardResponse>))]
+[JsonSerializable(typeof(UnifiApiResponse<List<ImportNfcCardsResponse>>))]
+// User Group models
+[JsonSerializable(typeof(UserGroupRequest))]
+[JsonSerializable(typeof(UserGroupResponse))]
+[JsonSerializable(typeof(AssignUsersToGroupRequest))]
+[JsonSerializable(typeof(ImportUserGroupsRequest))]
+[JsonSerializable(typeof(ImportUserGroupsResponse))]
+[JsonSerializable(typeof(UnifiApiResponse<UserGroupResponse>))]
+[JsonSerializable(typeof(UnifiApiResponse<List<UserGroupResponse>>))]
+[JsonSerializable(typeof(UnifiApiResponse<List<ImportUserGroupsResponse>>))]
+[JsonSerializable(typeof(List<UserGroupResponse>))]
+[JsonSerializable(typeof(List<NfcCardResponse>))]
+[JsonSerializable(typeof(List<ImportNfcCardsResponse>))]
+[JsonSerializable(typeof(List<ImportUserGroupsResponse>))]
 internal partial class UnifiAccessJsonContext : JsonSerializerContext
 {
 }
