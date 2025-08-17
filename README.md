@@ -271,24 +271,29 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🆘 Support
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/Unifi.NET/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/Unifi.NET/discussions)
-- **Documentation**: [Wiki](https://github.com/yourusername/Unifi.NET/wiki)
+- **Issues**: [GitHub Issues](https://github.com/adamreed90/Unifi.NET/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/adamreed90/Unifi.NET/discussions)
+- **Documentation**: [Wiki](https://github.com/adamreed90/Unifi.NET/wiki)
 
 ## 🗺️ Roadmap
 
-### Phase 1: UniFi Access SDK (Current)
+### Phase 1: UniFi Access SDK (In Progress - 37.5% Complete)
 - [x] Project structure setup
-- [ ] Native AOT-compatible HTTP client with RestSharp
-- [ ] System.Text.Json source generators for all models
-- [ ] User management endpoints
-- [ ] Door and access control endpoints
-- [ ] NFC/PIN credential management
-- [ ] Access policy management
-- [ ] Webhook support with real-time events
-- [ ] Polly resilience policies
-- [ ] Comprehensive testing with AOT verification
-- [ ] Documentation and samples
+- [x] Native AOT-compatible HTTP client with RestSharp
+- [x] System.Text.Json source generators with ASP.NET Core patterns
+- [x] User management endpoints (10/10 core endpoints)
+- [x] User group management (10/10 endpoints)
+- [x] NFC card management (9/9 endpoints)
+- [x] PIN code management (3/3 endpoints)
+- [x] Door and access control endpoints (7/7 endpoints)
+- [x] Access policy management (5/5 endpoints)
+- [x] Device management (1/3 endpoints)
+- [x] Comprehensive sample application
+- [x] Integration tested with production UniFi Access
+- [ ] Remaining endpoints (75/120 to implement)
+- [ ] Webhook/WebSocket support for real-time events
+- [ ] Complete unit test coverage
+- [ ] NuGet package publication
 
 ### Phase 2: UniFi Network SDK
 - [ ] Device management
