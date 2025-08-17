@@ -232,3 +232,4 @@ UniFi Access API is organized into service interfaces:
 - Phase 2: UniFi Network SDK
 - Phase 3: UniFi Protect SDK  
 - Phase 4: UniFi Site Manager SDK
+- Never mention Claude when making Git Commits

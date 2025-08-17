@@ -20,13 +20,13 @@ public sealed class DeviceService : BaseService, IDeviceService
     /// <inheritdoc />
     public async Task<IEnumerable<DeviceResponse>> GetDevicesAsync(CancellationToken cancellationToken = default)
     {
-        // The API returns a nested array structure
+        // The API returns a nested array structure [[{device1}, {device2}], [...]]
         var devices = await GetAsync<List<List<DeviceResponse>>>("/api/v1/developer/devices", cancellationToken);
         
-        // Flatten the nested array structure if needed
+        // Flatten all nested arrays to get all devices
         if (devices != null && devices.Count > 0)
         {
-            return devices[0] ?? new List<DeviceResponse>();
+            return devices.SelectMany(list => list ?? new List<DeviceResponse>());
         }
         
         return new List<DeviceResponse>();

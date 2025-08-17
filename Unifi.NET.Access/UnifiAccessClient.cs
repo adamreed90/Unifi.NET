@@ -14,7 +14,6 @@ namespace Unifi.NET.Access;
 public sealed class UnifiAccessClient : IUnifiAccessClient, IDisposable
 {
     private readonly RestClient _restClient;
-    private readonly UnifiAccessConfiguration _configuration;
     private readonly UserService _userService;
     private readonly AccessPolicyService _accessPolicyService;
     private readonly DoorService _doorService;
@@ -30,15 +29,13 @@ public sealed class UnifiAccessClient : IUnifiAccessClient, IDisposable
         ArgumentNullException.ThrowIfNull(configuration);
         configuration.Validate();
 
-        _configuration = configuration;
-
         // Configure RestClient
-        var options = new RestClientOptions(_configuration.BaseUrl)
+        var options = new RestClientOptions(configuration.BaseUrl)
         {
             ThrowOnAnyError = false,
             ThrowOnDeserializationError = false,
-            Timeout = TimeSpan.FromSeconds(_configuration.TimeoutSeconds),
-            RemoteCertificateValidationCallback = _configuration.ValidateSslCertificate ? null : (sender, cert, chain, errors) => true
+            Timeout = TimeSpan.FromSeconds(configuration.TimeoutSeconds),
+            RemoteCertificateValidationCallback = configuration.ValidateSslCertificate ? null : (sender, cert, chain, errors) => true
         };
 
         // Configure with source-generated JSON for Native AOT
@@ -50,12 +47,12 @@ public sealed class UnifiAccessClient : IUnifiAccessClient, IDisposable
         );
 
         // Initialize services
-        _userService = new UserService(_restClient, _configuration);
-        _accessPolicyService = new AccessPolicyService(_restClient, _configuration);
-        _doorService = new DoorService(_restClient, _configuration);
-        _credentialService = new CredentialService(_restClient, _configuration);
-        _deviceService = new DeviceService(_restClient, _configuration);
-        _userGroupService = new UserGroupService(_restClient, _configuration);
+        _userService = new UserService(_restClient, configuration);
+        _accessPolicyService = new AccessPolicyService(_restClient, configuration);
+        _doorService = new DoorService(_restClient, configuration);
+        _credentialService = new CredentialService(_restClient, configuration);
+        _deviceService = new DeviceService(_restClient, configuration);
+        _userGroupService = new UserGroupService(_restClient, configuration);
     }
 
     /// <summary>
@@ -68,16 +65,15 @@ public sealed class UnifiAccessClient : IUnifiAccessClient, IDisposable
         ArgumentNullException.ThrowIfNull(restClient);
         configuration.Validate();
 
-        _configuration = configuration;
         _restClient = restClient;
 
         // Initialize services
-        _userService = new UserService(_restClient, _configuration);
-        _accessPolicyService = new AccessPolicyService(_restClient, _configuration);
-        _doorService = new DoorService(_restClient, _configuration);
-        _credentialService = new CredentialService(_restClient, _configuration);
-        _deviceService = new DeviceService(_restClient, _configuration);
-        _userGroupService = new UserGroupService(_restClient, _configuration);
+        _userService = new UserService(_restClient, configuration);
+        _accessPolicyService = new AccessPolicyService(_restClient, configuration);
+        _doorService = new DoorService(_restClient, configuration);
+        _credentialService = new CredentialService(_restClient, configuration);
+        _deviceService = new DeviceService(_restClient, configuration);
+        _userGroupService = new UserGroupService(_restClient, configuration);
     }
 
     /// <inheritdoc />
