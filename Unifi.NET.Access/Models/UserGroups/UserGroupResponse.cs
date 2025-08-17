@@ -20,22 +20,28 @@ public sealed class UserGroupResponse
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
+    /// Full name of the user group (includes hierarchy).
+    /// </summary>
+    [JsonPropertyName("full_name")]
+    public string? FullName { get; set; }
+
+    /// <summary>
     /// Description of the user group.
     /// </summary>
     [JsonPropertyName("description")]
     public string? Description { get; set; }
 
     /// <summary>
-    /// Number of users in this group.
-    /// </summary>
-    [JsonPropertyName("user_count")]
-    public int UserCount { get; set; }
-
-    /// <summary>
     /// Parent group ID if this is a subgroup.
     /// </summary>
-    [JsonPropertyName("parent_id")]
+    [JsonPropertyName("up_id")]
     public string? ParentId { get; set; }
+
+    /// <summary>
+    /// Array of parent group IDs in the hierarchy.
+    /// </summary>
+    [JsonPropertyName("up_ids")]
+    public List<string>? ParentIds { get; set; }
 
     /// <summary>
     /// Parent group name if this is a subgroup.

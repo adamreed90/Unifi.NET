@@ -341,7 +341,10 @@ async Task ListUserGroups(IUnifiAccessClient client, ILogger logger)
             Console.WriteLine($"• {group.Name}");
             Console.WriteLine($"  ID: {group.Id}");
             Console.WriteLine($"  Description: {group.Description ?? "N/A"}");
-            Console.WriteLine($"  User Count: {group.UserCount}");
+            if (group.ParentId != null)
+            {
+                Console.WriteLine($"  Parent ID: {group.ParentId}");
+            }
             Console.WriteLine($"  Is System: {group.IsSystem}");
             Console.WriteLine();
         }
