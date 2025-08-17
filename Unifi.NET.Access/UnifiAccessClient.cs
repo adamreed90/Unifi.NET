@@ -42,10 +42,7 @@ public sealed class UnifiAccessClient : IUnifiAccessClient, IDisposable
         };
 
         // Configure with source-generated JSON for Native AOT
-        var jsonOptions = new JsonSerializerOptions
-        {
-            TypeInfoResolver = UnifiAccessJsonContext.Default
-        };
+        var jsonOptions = UnifiAccessJsonContext.CreateOptions();
 
         _restClient = new RestClient(
             options,

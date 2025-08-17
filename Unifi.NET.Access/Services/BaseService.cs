@@ -4,28 +4,38 @@ using RestSharp;
 using Unifi.NET.Access.Configuration;
 using Unifi.NET.Access.Exceptions;
 using Unifi.NET.Access.Models;
-using Unifi.NET.Access.Models.AccessPolicies;
-using Unifi.NET.Access.Models.Doors;
-using Unifi.NET.Access.Models.Users;
 using Unifi.NET.Access.Serialization;
 
 namespace Unifi.NET.Access.Services;
 
 /// <summary>
-/// Base service class with common HTTP operations for UniFi Access API.
+/// Base service class for UniFi Access API operations.
 /// </summary>
 public abstract class BaseService
 {
-    protected readonly RestClient Client;
-    protected readonly UnifiAccessConfiguration Configuration;
+    /// <summary>
+    /// Gets the REST client.
+    /// </summary>
+    protected RestClient Client { get; }
+    
+    /// <summary>
+    /// Gets the configuration.
+    /// </summary>
+    protected UnifiAccessConfiguration Configuration { get; }
+
+    /// <summary>
+    /// JSON serializer options configured for Native AOT.
+    /// </summary>
+    private readonly JsonSerializerOptions _jsonOptions;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BaseService"/> class.
     /// </summary>
     protected BaseService(RestClient client, UnifiAccessConfiguration configuration)
     {
-        Client = client ?? throw new ArgumentNullException(nameof(client));
-        Configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+        Client = client;
+        Configuration = configuration;
+        _jsonOptions = UnifiAccessJsonContext.CreateOptions();
     }
 
     /// <summary>
@@ -40,7 +50,7 @@ public abstract class BaseService
     /// <summary>
     /// Executes a POST request.
     /// </summary>
-    protected async Task<T> PostAsync<T>(string resource, object? body = null, CancellationToken cancellationToken = default)
+    protected async Task<T> PostAsync<T>(string resource, object? body, CancellationToken cancellationToken = default)
     {
         var request = CreateRequest(resource, Method.Post);
         if (body != null)
@@ -53,13 +63,10 @@ public abstract class BaseService
     /// <summary>
     /// Executes a PUT request.
     /// </summary>
-    protected async Task<T> PutAsync<T>(string resource, object? body = null, CancellationToken cancellationToken = default)
+    protected async Task<T> PutAsync<T>(string resource, object body, CancellationToken cancellationToken = default)
     {
         var request = CreateRequest(resource, Method.Put);
-        if (body != null)
-        {
-            request.AddJsonBody(body);
-        }
+        request.AddJsonBody(body);
         return await ExecuteAsync<T>(request, cancellationToken);
     }
 
@@ -73,13 +80,12 @@ public abstract class BaseService
     }
 
     /// <summary>
-    /// Creates a RestRequest with common headers.
+    /// Creates a REST request with common headers.
     /// </summary>
     private RestRequest CreateRequest(string resource, Method method)
     {
         var request = new RestRequest(resource, method);
         request.AddHeader("Authorization", $"Bearer {Configuration.ApiToken}");
-        request.AddHeader("Accept", "application/json");
         request.AddHeader("Content-Type", "application/json");
         return request;
     }
@@ -101,13 +107,15 @@ public abstract class BaseService
             return default!;
         }
 
-        // Use source-generated deserialization for Native AOT
-        var typeInfo = GetTypeInfo<UnifiApiResponse<T>>();
-        var apiResponse = JsonSerializer.Deserialize(response.Content, typeInfo) as UnifiApiResponse<T>;
+        // Get the JsonTypeInfo for the specific type from our options
+        var jsonTypeInfo = (JsonTypeInfo<UnifiApiResponse<T>>)_jsonOptions.GetTypeInfo(typeof(UnifiApiResponse<T>));
+        
+        // Deserialize using the type info for Native AOT compatibility
+        var apiResponse = JsonSerializer.Deserialize(response.Content, jsonTypeInfo);
         
         if (apiResponse == null)
         {
-            throw new UnifiAccessException("Failed to deserialize response", "DESERIALIZATION_ERROR");
+            throw new UnifiAccessException("Response data is null", "NULL_RESPONSE");
         }
 
         // Check for API-level errors
@@ -120,53 +128,6 @@ public abstract class BaseService
     }
 
     /// <summary>
-    /// Gets the JsonTypeInfo for the specified type.
-    /// </summary>
-    private static JsonTypeInfo<T> GetTypeInfo<T>()
-    {
-        var type = typeof(T);
-        
-        if (type == typeof(UnifiApiResponse<UserResponse>))
-        {
-            return (JsonTypeInfo<T>)(object)UnifiAccessJsonContext.Default.UnifiApiResponseUserResponse;
-        }
-        if (type == typeof(UnifiApiResponse<List<UserResponse>>))
-        {
-            return (JsonTypeInfo<T>)(object)UnifiAccessJsonContext.Default.UnifiApiResponseListUserResponse;
-        }
-        if (type == typeof(UnifiApiResponse<AccessPolicyResponse>))
-        {
-            return (JsonTypeInfo<T>)(object)UnifiAccessJsonContext.Default.UnifiApiResponseAccessPolicyResponse;
-        }
-        if (type == typeof(UnifiApiResponse<List<AccessPolicyResponse>>))
-        {
-            return (JsonTypeInfo<T>)(object)UnifiAccessJsonContext.Default.UnifiApiResponseListAccessPolicyResponse;
-        }
-        if (type == typeof(UnifiApiResponse<DoorResponse>))
-        {
-            return (JsonTypeInfo<T>)(object)UnifiAccessJsonContext.Default.UnifiApiResponseDoorResponse;
-        }
-        if (type == typeof(UnifiApiResponse<List<DoorResponse>>))
-        {
-            return (JsonTypeInfo<T>)(object)UnifiAccessJsonContext.Default.UnifiApiResponseListDoorResponse;
-        }
-        if (type == typeof(UnifiApiResponse<DoorLockingRuleResponse>))
-        {
-            return (JsonTypeInfo<T>)(object)UnifiAccessJsonContext.Default.UnifiApiResponseDoorLockingRuleResponse;
-        }
-        if (type == typeof(UnifiApiResponse<DoorEmergencyStatusResponse>))
-        {
-            return (JsonTypeInfo<T>)(object)UnifiAccessJsonContext.Default.UnifiApiResponseDoorEmergencyStatusResponse;
-        }
-        if (type == typeof(UnifiApiResponse<object>))
-        {
-            return (JsonTypeInfo<T>)(object)UnifiAccessJsonContext.Default.UnifiApiResponseObject;
-        }
-        
-        throw new NotSupportedException($"Type {type} is not registered for Native AOT deserialization");
-    }
-
-    /// <summary>
     /// Handles error responses from the API.
     /// </summary>
     private void HandleErrorResponse(RestResponse response)
@@ -174,15 +135,18 @@ public abstract class BaseService
         var statusCode = (int)response.StatusCode;
         var errorMessage = response.ErrorMessage ?? response.Content ?? "Unknown error";
 
-        // Try to parse error response
+        // Try to parse error response using JsonDocument for AOT compatibility
         if (!string.IsNullOrEmpty(response.Content))
         {
             try
             {
-                var errorResponse = JsonSerializer.Deserialize(response.Content, UnifiAccessJsonContext.Default.UnifiApiResponseObject) as UnifiApiResponse<object>;
-                if (errorResponse != null)
+                using var doc = JsonDocument.Parse(response.Content);
+                if (doc.RootElement.TryGetProperty("code", out var codeElement) &&
+                    doc.RootElement.TryGetProperty("msg", out var msgElement))
                 {
-                    throw UnifiErrorCodeMapper.MapError(errorResponse.Code, errorResponse.Message, statusCode);
+                    var code = codeElement.GetString() ?? "UNKNOWN_ERROR";
+                    var message = msgElement.GetString() ?? errorMessage;
+                    throw UnifiErrorCodeMapper.MapError(code, message, statusCode);
                 }
             }
             catch (JsonException)

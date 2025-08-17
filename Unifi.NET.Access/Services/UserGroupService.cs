@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 using RestSharp;
 using Unifi.NET.Access.Configuration;
 using Unifi.NET.Access.Models;
@@ -12,12 +14,15 @@ namespace Unifi.NET.Access.Services;
 /// </summary>
 public sealed class UserGroupService : BaseService, IUserGroupService
 {
+    private readonly JsonSerializerOptions _jsonOptions;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="UserGroupService"/> class.
     /// </summary>
     public UserGroupService(RestClient client, UnifiAccessConfiguration configuration) 
         : base(client, configuration)
     {
+        _jsonOptions = UnifiAccessJsonContext.CreateOptions();
     }
 
     /// <inheritdoc />
@@ -139,9 +144,8 @@ public sealed class UserGroupService : BaseService, IUserGroupService
         }
 
         // Parse the response using source-generated JSON for AOT compatibility
-        var apiResponse = System.Text.Json.JsonSerializer.Deserialize(
-            response.Content ?? "{}",
-            UnifiAccessJsonContext.Default.UnifiApiResponseListImportUserGroupsResponse);
+        var jsonTypeInfo = (JsonTypeInfo<UnifiApiResponse<List<ImportUserGroupsResponse>>>)_jsonOptions.GetTypeInfo(typeof(UnifiApiResponse<List<ImportUserGroupsResponse>>));
+        var apiResponse = JsonSerializer.Deserialize(response.Content ?? "{}", jsonTypeInfo);
         
         return apiResponse?.Data ?? new List<ImportUserGroupsResponse>();
     }
