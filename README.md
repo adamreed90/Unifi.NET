@@ -142,26 +142,27 @@ The SDKs are designed for full Native AOT compatibility in .NET 9:
 </PropertyGroup>
 ```
 
-```csharp
-// Configure JSON serialization with source generators
-[JsonSourceGenerationOptions(WriteIndented = false)]
-[JsonSerializable(typeof(UnifiUser))]
-[JsonSerializable(typeof(UnifiDoor))]
-[JsonSerializable(typeof(AccessPolicy))]
-internal partial class UnifiJsonContext : JsonSerializerContext { }
+The SDK uses ASP.NET Core-style JSON serialization patterns for optimal Native AOT performance:
 
-// Register with DI
+```csharp
+// Internal implementation uses service-specific JsonSerializerContext classes
+// Combined with TypeInfoResolver for runtime type resolution
+// Following Microsoft's recommended patterns for Native AOT applications
+
+// All JSON serialization is handled internally - no configuration needed!
 services.AddUnifi(options =>
 {
-    options.JsonSerializerContext = UnifiJsonContext.Default;
-});
+    options.BaseUrl = "https://your-console-ip:12445";
+    options.ApiToken = "your-api-token-here";
+})
+.AddAccess(); // Serialization is automatically configured for AOT
 ```
 
 ```bash
 # Publish with Native AOT
 dotnet publish -c Release -r linux-x64
 
-# Verify AOT compatibility (should produce zero warnings)
+# Verify AOT compatibility (produces zero warnings)
 dotnet publish -c Release -r linux-x64 --verbosity detailed | grep -i warning
 ```
 
@@ -223,10 +224,12 @@ All SDKs follow .NET 9 Native AOT best practices:
 - No dynamic assembly loading
 
 #### 🎯 **Implementation Strategy**
+- Service-specific `JsonSerializerContext` classes for organized type registration
+- `JsonTypeInfoResolver.Combine()` pattern for merging contexts (ASP.NET Core style)
+- `JsonTypeInfo<T>` and `GetTypeInfo()` for runtime type resolution
 - All models use `[JsonSerializable]` source generation
 - Configuration uses source-generated binding
-- DI uses factory patterns where needed
-- RestSharp configured with AOT-safe serializers
+- RestSharp configured with System.Text.Json and AOT-safe serializers
 - Zero AOT warnings policy enforced
 
 ## 🧪 Testing

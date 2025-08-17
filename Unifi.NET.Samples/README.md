@@ -35,41 +35,45 @@ The UniFi Access sample is a console application that demonstrates key features 
 
 ### Features
 
-#### 1. Create New User
-Create a new user with basic information:
-- First and last name (required)
-- Email address (optional)
-- Employee ID (optional)
+The sample provides a comprehensive menu demonstrating all major SDK capabilities:
 
-#### 2. List All Users
-View all users in the system with:
-- User details (name, email, status)
-- Number of assigned NFC cards
-- PIN code status
+#### User Management
+- **Create New User** - Add users with name, email, and employee ID
+- **List All Users** - View all users with their status and credentials
+- **Search Users** - Find users by name or keyword
+- **View User Details** - Get complete information about a specific user
 
-#### 3. Register NFC Card
-Interactive NFC card enrollment:
-- Select a user to assign the card to
-- Choose an NFC-capable device (UAH or UAHP)
-- Follow on-screen instructions to tap the card
-- Automatic card detection and assignment
+#### User Groups
+- **List User Groups** - View all groups with hierarchy information
+- **Create User Group** - Create new groups with optional parent groups
+- **Add Users to Group** - Bulk assign users to groups
+- **View Users in Group** - See group membership
 
-#### 4. Assign PIN Code
-Assign a PIN code to a user:
-- Generate a random secure PIN
-- Or specify a custom PIN (4-8 digits)
-- PIN is displayed for secure distribution to the user
+#### NFC Card Management
+- **Register NFC Card** - Interactive enrollment with device selection
+- **List NFC Cards** - View all cards in the system
+- **Import NFC Cards** - Bulk import from CSV file
+- **Direct Card Assignment** - Assign existing cards to users with force reassignment
 
-#### 5. List Devices
-View all UniFi Access devices:
-- Device name and type
-- Location information
-- Model and version details
-- Adoption status
+#### PIN Code Management
+- **Assign PIN Code** - Generate or specify custom PINs (4-8 digits)
+- **View PIN Status** - Check if users have PINs assigned
+
+#### Access Policies
+- **List Access Policies** - View all policies with resources
+- **Create Access Policy** - Define new policies with schedules
+- **Assign to Users** - Grant access to specific users
+
+#### Door Management
+- **List Doors** - View all doors with status
+- **Unlock Door** - Remote unlock for testing
+
+#### Device Management
+- **List Devices** - View all UniFi Access devices with details
 
 ### Native AOT Compilation
 
-This sample supports Native AOT compilation for improved performance and reduced memory usage:
+This sample fully supports Native AOT compilation for optimal performance and minimal memory footprint:
 
 ```bash
 # Publish for Linux
@@ -81,6 +85,13 @@ This sample supports Native AOT compilation for improved performance and reduced
 # Publish for macOS (Apple Silicon)
 ~/.dotnet/dotnet publish -c Release -r osx-arm64
 ```
+
+**Key Features:**
+- Zero runtime reflection - all JSON serialization uses source generators
+- ASP.NET Core-style JsonTypeInfoResolver pattern for type resolution
+- Service-specific JsonSerializerContext classes for optimal organization
+- No AOT warnings - fully trimming and AOT compatible
+- Typical binary size: ~15-20MB (compared to ~70MB+ without AOT)
 
 ### Security Notes
 

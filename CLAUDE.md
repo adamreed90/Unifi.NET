@@ -132,12 +132,36 @@ All SDKs use Bearer token authentication:
 ## Critical Implementation Notes
 
 ### JSON Serialization
-ALWAYS use source generators:
+The project uses ASP.NET Core-style Native AOT patterns:
+
+#### Architecture
 ```csharp
+// Service-specific contexts in /Serialization/Contexts/
 [JsonSourceGenerationOptions(WriteIndented = false)]
-[JsonSerializable(typeof(YourModel))]
-internal partial class UnifiJsonContext : JsonSerializerContext { }
+[JsonSerializable(typeof(UserResponse))]
+internal partial class UserJsonContext : JsonSerializerContext { }
+
+// Combined using TypeInfoResolver
+public static class UnifiAccessJsonContext
+{
+    public static IJsonTypeInfoResolver Combined => 
+        JsonTypeInfoResolver.Combine(
+            CoreJsonContext.Default,
+            UserJsonContext.Default,
+            // ... other contexts
+        );
+}
+
+// Runtime type resolution in BaseService
+var jsonTypeInfo = (JsonTypeInfo<T>)_jsonOptions.GetTypeInfo(typeof(T));
+var result = JsonSerializer.Deserialize(response.Content, jsonTypeInfo);
 ```
+
+#### Key Patterns
+- Service-specific `JsonSerializerContext` classes for organization
+- `JsonTypeInfoResolver.Combine()` to merge all contexts
+- `JsonTypeInfo<T>` and `GetTypeInfo()` for runtime type resolution
+- No manual type mapping or reflection
 
 ### Error Handling
 UniFi APIs return structured error codes (e.g., `CODE_PARAMS_INVALID`, `CODE_AUTH_FAILED`). Map these to typed exceptions.
@@ -216,17 +240,33 @@ UniFi Access API is organized into service interfaces:
 - ✅ API implementation tracking system (`API_IMPLEMENTATION_STATUS.md`)
 - ✅ Service interface scaffolding
 - ✅ Contributing guidelines (`CONTRIBUTING.md`)
+- ✅ ASP.NET Core-style JSON serialization with TypeInfoResolver
+- ✅ Full Native AOT compatibility with zero warnings
 
 **UniFi Access SDK Status:**
 - 📋 **Total Endpoints**: 120+
-- ✅ **Implemented**: 0/120 (0%)
-- 🧪 **Tested**: 0/120 (0%)
-- 📝 **Documented**: API reference available (`Unifi.NET.Access/UniFi_Access_API_Reference.md`)
+- ✅ **Implemented**: 45/120 (37.5%)
+  - Core user management (10 endpoints)
+  - User groups (10 endpoints)
+  - NFC card management (9 endpoints)
+  - PIN code management (3 endpoints)
+  - Access policies (5 endpoints)
+  - Doors (7 endpoints)
+  - Devices (1 endpoint)
+- 🧪 **Tested**: Basic unit tests + integration tested against live UniFi Access
+- 📝 **Documented**: Full API reference + comprehensive sample application
+
+**Recent Improvements:**
+- ✅ Refactored to ASP.NET Core Native AOT patterns
+- ✅ Fixed device listing to return all devices (flattened nested arrays)
+- ✅ Fixed UserGroupResponse model to match actual API response
+- ✅ Added comprehensive sample application with 17+ menu options
+- ✅ Successfully tested against production UniFi Access instance
 
 **Next Steps:**
-1. Implement P0 (Core) endpoints first
-2. Follow the workflow in `CONTRIBUTING.md`
-3. Track progress in `API_IMPLEMENTATION_STATUS.md`
+1. Continue implementing remaining P1/P2 endpoints
+2. Add comprehensive unit tests for all services
+3. Implement webhook/WebSocket support for real-time events
 
 **Future SDK Phases:**
 - Phase 2: UniFi Network SDK
