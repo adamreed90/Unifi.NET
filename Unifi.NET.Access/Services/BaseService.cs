@@ -82,7 +82,7 @@ public abstract class BaseService
     /// <summary>
     /// Creates a REST request with common headers.
     /// </summary>
-    private RestRequest CreateRequest(string resource, Method method)
+    protected RestRequest CreateRequest(string resource, Method method)
     {
         var request = new RestRequest(resource, method);
         request.AddHeader("Authorization", $"Bearer {Configuration.ApiToken}");

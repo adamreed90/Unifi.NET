@@ -35,11 +35,20 @@ public interface IUserService
     Task<UserResponse> GetUserAsync(string userId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Fetches all users.
+    /// Fetches all users (automatically handles pagination).
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>List of users.</returns>
+    /// <returns>List of all users.</returns>
     Task<IEnumerable<UserResponse>> GetUsersAsync(CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Fetches users with pagination.
+    /// </summary>
+    /// <param name="pageNum">Page number (1-based).</param>
+    /// <param name="pageSize">Number of items per page.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>List of users for the specified page.</returns>
+    Task<IEnumerable<UserResponse>> GetUsersAsync(int pageNum, int pageSize, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Deletes a user.

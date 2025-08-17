@@ -1,8 +1,12 @@
+using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 using RestSharp;
 using Unifi.NET.Access.Configuration;
+using Unifi.NET.Access.Models;
 using Unifi.NET.Access.Models.AccessPolicies;
 using Unifi.NET.Access.Models.Credentials;
 using Unifi.NET.Access.Models.Users;
+using Unifi.NET.Access.Serialization;
 
 namespace Unifi.NET.Access.Services;
 
@@ -11,12 +15,15 @@ namespace Unifi.NET.Access.Services;
 /// </summary>
 public sealed class UserService : BaseService, IUserService
 {
+    private readonly JsonSerializerOptions _jsonOptions;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="UserService"/> class.
     /// </summary>
     public UserService(RestClient client, UnifiAccessConfiguration configuration) 
         : base(client, configuration)
     {
+        _jsonOptions = UnifiAccessJsonContext.CreateOptions();
     }
 
     /// <inheritdoc />
@@ -47,7 +54,68 @@ public sealed class UserService : BaseService, IUserService
     /// <inheritdoc />
     public async Task<IEnumerable<UserResponse>> GetUsersAsync(CancellationToken cancellationToken = default)
     {
-        var users = await GetAsync<List<UserResponse>>("/api/v1/developer/users?expand[]=access_policy", cancellationToken);
+        // First, get the total count with a small page
+        var countUrl = "/api/v1/developer/users?page_num=1&page_size=1";
+        var countRequest = CreateRequest(countUrl, Method.Get);
+        var countResponse = await Client.ExecuteAsync(countRequest, cancellationToken);
+        
+        if (!countResponse.IsSuccessful || string.IsNullOrEmpty(countResponse.Content))
+        {
+            return new List<UserResponse>();
+        }
+        
+        // Parse to get total count
+        var jsonTypeInfo = (JsonTypeInfo<UnifiApiResponse<List<UserResponse>>>)_jsonOptions.GetTypeInfo(typeof(UnifiApiResponse<List<UserResponse>>));
+        var paginatedResponse = JsonSerializer.Deserialize(countResponse.Content, jsonTypeInfo);
+        
+        if (paginatedResponse?.Pagination == null)
+        {
+            // Fallback to old method if pagination is not available
+            var users = await GetAsync<List<UserResponse>>("/api/v1/developer/users?expand[]=access_policy", cancellationToken);
+            return users ?? new List<UserResponse>();
+        }
+        
+        var total = paginatedResponse.Pagination.Total;
+        
+        // Now fetch all users in one request with the total as page size
+        // Note: There might be a max page size limit, so we may need to fetch in chunks
+        var pageSize = Math.Min(total, 1000); // Assume max 1000 per page
+        var allUsers = new List<UserResponse>();
+        var pageNum = 1;
+        
+        while (allUsers.Count < total)
+        {
+            var url = $"/api/v1/developer/users?expand[]=access_policy&page_num={pageNum}&page_size={pageSize}";
+            var request = CreateRequest(url, Method.Get);
+            var response = await Client.ExecuteAsync(request, cancellationToken);
+            
+            if (!response.IsSuccessful || string.IsNullOrEmpty(response.Content))
+            {
+                break;
+            }
+            
+            var pageData = JsonSerializer.Deserialize(response.Content, jsonTypeInfo);
+            if (pageData?.Data != null)
+            {
+                allUsers.AddRange(pageData.Data);
+            }
+            
+            if (pageData?.Data == null || pageData.Data.Count == 0 || allUsers.Count >= total)
+            {
+                break;
+            }
+            
+            pageNum++;
+        }
+        
+        return allUsers;
+    }
+    
+    /// <inheritdoc />
+    public async Task<IEnumerable<UserResponse>> GetUsersAsync(int pageNum, int pageSize, CancellationToken cancellationToken = default)
+    {
+        var url = $"/api/v1/developer/users?expand[]=access_policy&page_num={pageNum}&page_size={pageSize}";
+        var users = await GetAsync<List<UserResponse>>(url, cancellationToken);
         return users ?? new List<UserResponse>();
     }
 

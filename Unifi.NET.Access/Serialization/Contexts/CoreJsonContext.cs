@@ -14,6 +14,7 @@ namespace Unifi.NET.Access.Serialization.Contexts;
 [JsonSerializable(typeof(UnifiApiResponse<object>))]
 [JsonSerializable(typeof(UnifiApiResponse<string>))]
 [JsonSerializable(typeof(Dictionary<string, string>))]
+[JsonSerializable(typeof(PaginationInfo))]
 internal partial class CoreJsonContext : JsonSerializerContext
 {
 }
