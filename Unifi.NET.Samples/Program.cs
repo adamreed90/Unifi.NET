@@ -500,7 +500,8 @@ async Task RegisterNfcCard(IUnifiAccessClient client, ILogger logger)
     for (int i = 0; i < nfcDevices.Count; i++)
     {
         var device = nfcDevices[i];
-        Console.WriteLine($"{i + 1}. {device.Name} ({device.Type})");
+        var displayName = !string.IsNullOrWhiteSpace(device.Alias) ? device.Alias : device.Name;
+        Console.WriteLine($"{i + 1}. {displayName} - {device.Name} ({device.Type})");
     }
     
     Console.Write("\nSelect device number: ");
