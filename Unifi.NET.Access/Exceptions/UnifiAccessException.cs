@@ -91,21 +91,28 @@ public static class UnifiErrorCodeMapper
     /// </summary>
     public static UnifiAccessException MapError(string errorCode, string message, int? statusCode = null)
     {
+        // Include error code in the message for better debugging
+        var fullMessage = string.IsNullOrEmpty(errorCode) || errorCode == "CODE_SYSTEM_ERROR" 
+            ? message 
+            : $"{message} (Error Code: {errorCode})";
+        
         return errorCode switch
         {
             "CODE_AUTH_FAILED" or "CODE_ACCESS_TOKEN_INVALID" or "CODE_UNAUTHORIZED" 
-                => new UnifiAuthenticationException(message, errorCode, statusCode),
+                => new UnifiAuthenticationException(fullMessage, errorCode, statusCode),
             
-            "CODE_RESOURCE_NOT_FOUND" or "CODE_NOT_EXISTS" or "CODE_USER_ACCOUNT_NOT_EXIST" or "CODE_USER_WORKER_NOT_EXISTS"
-                => new UnifiNotFoundException(message, errorCode, statusCode),
+            "CODE_RESOURCE_NOT_FOUND" or "CODE_NOT_EXISTS" or "CODE_USER_ACCOUNT_NOT_EXIST" or 
+            "CODE_USER_WORKER_NOT_EXISTS" or "CODE_DEVICE_DEVICE_NOT_FOUND"
+                => new UnifiNotFoundException(fullMessage, errorCode, statusCode),
             
-            "CODE_PARAMS_INVALID" or "CODE_USER_EMAIL_ERROR" or "CODE_USER_NAME_DUPLICATED" 
-                => new UnifiValidationException(message, errorCode, statusCode),
+            "CODE_PARAMS_INVALID" or "CODE_USER_EMAIL_ERROR" or "CODE_USER_NAME_DUPLICATED" or
+            "CODE_CREDS_PIN_CODE_CREDS_LENGTH_INVALID"
+                => new UnifiValidationException(fullMessage, errorCode, statusCode),
             
-            "CODE_OPERATION_FORBIDDEN" 
-                => new UnifiForbiddenException(message, errorCode, statusCode),
+            "CODE_OPERATION_FORBIDDEN" or "CODE_DEVICE_DEVICE_BUSY" or "CODE_DEVICE_DEVICE_OFFLINE"
+                => new UnifiForbiddenException(fullMessage, errorCode, statusCode),
             
-            _ => new UnifiAccessException(message, errorCode, statusCode)
+            _ => new UnifiAccessException(fullMessage, errorCode, statusCode)
         };
     }
 }
