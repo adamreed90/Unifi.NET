@@ -468,15 +468,64 @@ async Task RegisterNfcCard(IUnifiAccessClient client, ILogger logger)
 {
     Console.WriteLine("\n--- Register NFC Card via Enrollment ---");
     
-    // First, list users to select from
-    Console.Write("Enter User ID (or press Enter to list users): ");
-    var userId = Console.ReadLine()?.Trim();
+    Console.WriteLine("\nSelect user for NFC card assignment:");
+    Console.WriteLine("1. Enter User ID directly");
+    Console.WriteLine("2. Search for user by name");
+    Console.WriteLine("3. List all users");
+    Console.Write("\nSelect option (1-3): ");
     
-    if (string.IsNullOrWhiteSpace(userId))
+    var option = Console.ReadLine()?.Trim();
+    string? userId = null;
+    
+    switch (option)
     {
-        await ListUsers(client, logger);
-        Console.Write("\nEnter User ID: ");
-        userId = Console.ReadLine()?.Trim();
+        case "1":
+            Console.Write("Enter User ID: ");
+            userId = Console.ReadLine()?.Trim();
+            break;
+            
+        case "2":
+            Console.Write("Enter search keyword (name/email): ");
+            var keyword = Console.ReadLine()?.Trim();
+            if (!string.IsNullOrWhiteSpace(keyword))
+            {
+                logger.LogInformation("Searching for users...");
+                var searchResults = await client.Users.SearchUsersAsync(keyword);
+                
+                if (!searchResults.Any())
+                {
+                    Console.WriteLine("No users found matching the search criteria.");
+                    return;
+                }
+                
+                Console.WriteLine($"\nFound {searchResults.Count()} user(s):\n");
+                var userList = searchResults.ToList();
+                for (int i = 0; i < userList.Count; i++)
+                {
+                    var user = userList[i];
+                    Console.WriteLine($"{i + 1}. {user.FirstName} {user.LastName}");
+                    Console.WriteLine($"   ID: {user.Id}");
+                    Console.WriteLine($"   Email: {user.UserEmail ?? "N/A"}");
+                    Console.WriteLine($"   Employee #: {user.EmployeeNumber ?? "N/A"}");
+                }
+                
+                Console.Write("\nSelect user number: ");
+                if (int.TryParse(Console.ReadLine(), out int userIndex) && userIndex > 0 && userIndex <= userList.Count)
+                {
+                    userId = userList[userIndex - 1].Id;
+                }
+            }
+            break;
+            
+        case "3":
+            await ListUsers(client, logger);
+            Console.Write("\nEnter User ID from the list: ");
+            userId = Console.ReadLine()?.Trim();
+            break;
+            
+        default:
+            Console.WriteLine("Invalid option.");
+            return;
     }
     
     if (string.IsNullOrWhiteSpace(userId))
@@ -853,14 +902,64 @@ async Task AssignPinCode(IUnifiAccessClient client, ILogger logger)
 {
     Console.WriteLine("\n--- Assign PIN Code ---");
     
-    Console.Write("Enter User ID (or press Enter to list users): ");
-    var userId = Console.ReadLine()?.Trim();
+    Console.WriteLine("\nSelect user for PIN assignment:");
+    Console.WriteLine("1. Enter User ID directly");
+    Console.WriteLine("2. Search for user by name");
+    Console.WriteLine("3. List all users");
+    Console.Write("\nSelect option (1-3): ");
     
-    if (string.IsNullOrWhiteSpace(userId))
+    var option = Console.ReadLine()?.Trim();
+    string? userId = null;
+    
+    switch (option)
     {
-        await ListUsers(client, logger);
-        Console.Write("\nEnter User ID: ");
-        userId = Console.ReadLine()?.Trim();
+        case "1":
+            Console.Write("Enter User ID: ");
+            userId = Console.ReadLine()?.Trim();
+            break;
+            
+        case "2":
+            Console.Write("Enter search keyword (name/email): ");
+            var keyword = Console.ReadLine()?.Trim();
+            if (!string.IsNullOrWhiteSpace(keyword))
+            {
+                logger.LogInformation("Searching for users...");
+                var searchResults = await client.Users.SearchUsersAsync(keyword);
+                
+                if (!searchResults.Any())
+                {
+                    Console.WriteLine("No users found matching the search criteria.");
+                    return;
+                }
+                
+                Console.WriteLine($"\nFound {searchResults.Count()} user(s):\n");
+                var userList = searchResults.ToList();
+                for (int i = 0; i < userList.Count; i++)
+                {
+                    var user = userList[i];
+                    Console.WriteLine($"{i + 1}. {user.FirstName} {user.LastName}");
+                    Console.WriteLine($"   ID: {user.Id}");
+                    Console.WriteLine($"   Email: {user.UserEmail ?? "N/A"}");
+                    Console.WriteLine($"   Employee #: {user.EmployeeNumber ?? "N/A"}");
+                }
+                
+                Console.Write("\nSelect user number: ");
+                if (int.TryParse(Console.ReadLine(), out int userIndex) && userIndex > 0 && userIndex <= userList.Count)
+                {
+                    userId = userList[userIndex - 1].Id;
+                }
+            }
+            break;
+            
+        case "3":
+            await ListUsers(client, logger);
+            Console.Write("\nEnter User ID from the list: ");
+            userId = Console.ReadLine()?.Trim();
+            break;
+            
+        default:
+            Console.WriteLine("Invalid option.");
+            return;
     }
     
     if (string.IsNullOrWhiteSpace(userId))
@@ -875,16 +974,16 @@ async Task AssignPinCode(IUnifiAccessClient client, ILogger logger)
         Console.WriteLine("2. Enter custom PIN");
         Console.Write("\nSelect option: ");
         
-        var option = Console.ReadLine()?.Trim();
+        var pinOption = Console.ReadLine()?.Trim();
         string pinCode;
         
-        if (option == "1")
+        if (pinOption == "1")
         {
             logger.LogInformation("Generating random PIN code...");
             pinCode = await client.Credentials.GeneratePinCodeAsync();
             Console.WriteLine($"\n✓ Generated PIN: {pinCode}");
         }
-        else if (option == "2")
+        else if (pinOption == "2")
         {
             Console.Write("Enter PIN code (4-8 digits): ");
             pinCode = Console.ReadLine()?.Trim() ?? "";
