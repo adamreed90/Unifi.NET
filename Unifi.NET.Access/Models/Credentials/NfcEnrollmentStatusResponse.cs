@@ -11,11 +11,11 @@ public sealed class NfcEnrollmentStatusResponse
     /// Unique NFC card token.
     /// </summary>
     [JsonPropertyName("token")]
-    public string Token { get; set; } = string.Empty;
+    public string? Token { get; set; }
 
     /// <summary>
     /// Display ID of the NFC card.
     /// </summary>
-    [JsonPropertyName("card_id")]
-    public string CardId { get; set; } = string.Empty;
+    [JsonPropertyName("id")]
+    public string? CardId { get; set; }
 }

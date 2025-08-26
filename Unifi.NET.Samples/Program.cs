@@ -4,9 +4,12 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Unifi.NET.Access;
 using Unifi.NET.Access.Configuration;
+using Unifi.NET.Access.Exceptions;
 using Unifi.NET.Access.Models.Credentials;
 using Unifi.NET.Access.Models.Users;
 using Unifi.NET.Access.Models.UserGroups;
+using Unifi.NET.Access.Models.Devices;
+using Unifi.NET.Access.Models.Doors;
 using System.Text;
 
 var host = Host.CreateDefaultBuilder(args)
@@ -464,6 +467,12 @@ async Task ViewUsersInGroup(IUnifiAccessClient client, ILogger logger)
     }
 }
 
+async Task RegisterNfcCardForUser(IUnifiAccessClient client, ILogger logger, string userId, string firstName, string lastName)
+{
+    Console.WriteLine($"\n🔐 Registering NFC card for {firstName} {lastName}...");
+    await RegisterNfcCardCore(client, logger, userId, $"{firstName} {lastName}");
+}
+
 async Task RegisterNfcCard(IUnifiAccessClient client, ILogger logger)
 {
     Console.WriteLine("\n--- Register NFC Card via Enrollment ---");
@@ -534,74 +543,290 @@ async Task RegisterNfcCard(IUnifiAccessClient client, ILogger logger)
         return;
     }
 
-    // Get available devices
-    logger.LogInformation("Fetching available devices...");
-    var devices = await client.Devices.GetDevicesAsync();
-    var nfcDevices = devices.Where(d => d.Type == "UAH" || d.Type == "UAHP").ToList();
+    await RegisterNfcCardCore(client, logger, userId, null);
+}
+
+async Task RegisterNfcCardCore(IUnifiAccessClient client, ILogger logger, string userId, string? userName)
+{
+    // Get available devices and doors
+    logger.LogInformation("Fetching available devices and doors...");
+    var devicesTask = client.Devices.GetDevicesAsync();
+    var doorsTask = client.Doors.GetDoorsAsync();
     
-    if (!nfcDevices.Any())
+    await Task.WhenAll(devicesTask, doorsTask);
+    
+    var devices = await devicesTask;
+    var doors = await doorsTask;
+    
+    // Create door lookup
+    var doorLookup = doors.ToDictionary(d => d.Id, d => d);
+    
+    // Filter to only NFC-capable readers (not hubs)
+    var nfcCapableTypes = new[] { "UA-G3", "UA-G2-PRO", "UA-G2-MINI", "UDA-LITE" };
+    var readers = devices.Where(d => nfcCapableTypes.Contains(d.Type)).ToList();
+    
+    if (!readers.Any())
     {
-        Console.WriteLine("Error: No NFC-capable devices found.");
+        Console.WriteLine("Error: No NFC-capable readers found.");
+        Console.WriteLine("\nAll devices found:");
+        foreach (var d in devices)
+        {
+            Console.WriteLine($"  - {d.Name} ({d.Type})");
+        }
         return;
     }
 
-    Console.WriteLine("\nAvailable NFC Devices:");
-    for (int i = 0; i < nfcDevices.Count; i++)
+    // Group readers by location (door)
+    var readersByLocation = readers
+        .GroupBy(r => r.LocationId)
+        .OrderBy(g => doorLookup.ContainsKey(g.Key) ? doorLookup[g.Key].FullName : "Unknown")
+        .ToList();
+    
+    Console.WriteLine("\nAvailable NFC Readers:");
+    Console.WriteLine("══════════════════════");
+    
+    var readerIndex = 1;
+    var indexedReaders = new List<DeviceResponse>();
+    
+    foreach (var locationGroup in readersByLocation)
     {
-        var device = nfcDevices[i];
-        var displayName = !string.IsNullOrWhiteSpace(device.Alias) ? device.Alias : device.Name;
-        Console.WriteLine($"{i + 1}. {displayName} - {device.Name} ({device.Type})");
+        var locationId = locationGroup.Key;
+        DoorResponse? door = null;
+        doorLookup.TryGetValue(locationId, out door);
+        
+        // Display door information
+        if (door != null)
+        {
+            Console.WriteLine($"\n📍 Door: {door.Name}");
+            Console.WriteLine($"   Full Path: {door.FullName}");
+            
+            // Show door status if available
+            if (!string.IsNullOrWhiteSpace(door.DoorLockRelayStatus))
+            {
+                var lockIcon = door.DoorLockRelayStatus == "unlock" ? "🔓" : "🔒";
+                var positionIcon = door.DoorPositionStatus switch
+                {
+                    "open" => "🚪",
+                    "close" => "🚪",
+                    _ => "❓"
+                };
+                Console.WriteLine($"   Status: {lockIcon} {door.DoorLockRelayStatus} | {positionIcon} {door.DoorPositionStatus ?? "no sensor"}");
+            }
+        }
+        else
+        {
+            Console.WriteLine($"\n📍 Location: Unknown (ID: {locationId})");
+        }
+        
+        // List readers at this location
+        foreach (var device in locationGroup)
+        {
+            var displayName = !string.IsNullOrWhiteSpace(device.Alias) ? device.Alias : device.Name;
+            
+            // Show parent hub info if connected
+            var hubInfo = "";
+            if (!string.IsNullOrWhiteSpace(device.ConnectedUahId))
+            {
+                var hub = devices.FirstOrDefault(d => d.Id == device.ConnectedUahId);
+                if (hub != null)
+                {
+                    var hubName = !string.IsNullOrWhiteSpace(hub.Alias) ? hub.Alias : hub.Name;
+                    hubInfo = $" → Hub: {hubName}";
+                }
+                else
+                {
+                    hubInfo = $" → Hub: ...{device.ConnectedUahId.Substring(Math.Max(0, device.ConnectedUahId.Length - 4))}";
+                }
+            }
+            else
+            {
+                hubInfo = " [Standalone]";
+            }
+            
+            Console.WriteLine($"\n  [{readerIndex}] {displayName}");
+            Console.WriteLine($"      Model: {device.Name} | Type: {device.Type}");
+            Console.WriteLine($"      ID: {device.Id}{hubInfo}");
+            
+            indexedReaders.Add(device);
+            readerIndex++;
+        }
     }
     
-    Console.Write("\nSelect device number: ");
-    if (!int.TryParse(Console.ReadLine(), out int deviceIndex) || deviceIndex < 1 || deviceIndex > nfcDevices.Count)
+    Console.WriteLine("\n──────────────────────");
+    Console.Write("\nSelect reader number: ");
+    if (!int.TryParse(Console.ReadLine(), out int deviceIndex) || deviceIndex < 1 || deviceIndex > indexedReaders.Count)
     {
-        Console.WriteLine("Invalid device selection.");
+        Console.WriteLine("Invalid reader selection.");
         return;
     }
     
-    var selectedDevice = nfcDevices[deviceIndex - 1];
+    var selectedDevice = indexedReaders[deviceIndex - 1];
 
     try
     {
+        // Ask about resetting cards from other sites
+        Console.Write("\nAllow resetting cards enrolled at other sites? (Y/N): ");
+        var allowReset = Console.ReadLine()?.Trim()?.ToUpperInvariant() == "Y";
+        
         // Create enrollment session
         logger.LogInformation("Creating NFC enrollment session...");
+        logger.LogInformation("Using device: {DeviceName} (ID: {DeviceId}, Type: {DeviceType})", 
+            selectedDevice.Name, selectedDevice.Id, selectedDevice.Type);
+        
+        // Validate device ID format (should be 12 hex characters)
+        if (selectedDevice.Id.Length != 12 || !System.Text.RegularExpressions.Regex.IsMatch(selectedDevice.Id, "^[0-9a-fA-F]{12}$"))
+        {
+            logger.LogWarning("Device ID format may be incorrect. Expected 12 hex characters, got: {DeviceId}", selectedDevice.Id);
+        }
+        
         var sessionRequest = new CreateNfcEnrollmentSessionRequest
         {
-            DeviceId = selectedDevice.Id
+            DeviceId = selectedDevice.Id,
+            ResetUaCard = allowReset
         };
         
         var session = await client.Credentials.CreateNfcEnrollmentSessionAsync(sessionRequest);
         Console.WriteLine($"\n✓ Enrollment session created!");
         Console.WriteLine($"  Session ID: {session.SessionId}");
-        Console.WriteLine($"\n⏳ Please tap your NFC card on device: {selectedDevice.Name}");
-        Console.WriteLine("   Waiting for card detection (timeout: 60 seconds)...\n");
+        Console.WriteLine($"\n📍 Device: {selectedDevice.Name}");
+        Console.WriteLine("\n⏳ Instructions:");
+        Console.WriteLine("   1. Place your NFC card on the reader");
+        Console.WriteLine("   2. HOLD the card for at least 5 seconds");
+        Console.WriteLine("   3. Wait for confirmation beep/light");
+        Console.WriteLine("\n   Timeout: 60 seconds | Press 'C' to cancel | Press 'R' to retry\n");
 
         // Poll for card detection
         var startTime = DateTime.UtcNow;
         var timeout = TimeSpan.FromSeconds(60);
         string? detectedCardId = null;
+        bool cardAlreadyEnrolled = false;
+        int retryCount = 0;
+        const int maxRetries = 3;
         
         while (DateTime.UtcNow - startTime < timeout)
         {
+            // Check for user input
+            if (Console.KeyAvailable)
+            {
+                var key = Console.ReadKey(true);
+                if (key.KeyChar == 'c' || key.KeyChar == 'C')
+                {
+                    Console.WriteLine("\n\n⚠️  Cancelling enrollment session...");
+                    await client.Credentials.CancelNfcEnrollmentSessionAsync(session.SessionId);
+                    Console.WriteLine("✓ Enrollment cancelled.");
+                    return;
+                }
+                else if (key.KeyChar == 'r' || key.KeyChar == 'R')
+                {
+                    Console.WriteLine("\n\n🔄 Restarting enrollment session...");
+                    await client.Credentials.CancelNfcEnrollmentSessionAsync(session.SessionId);
+                    
+                    // Create new session
+                    session = await client.Credentials.CreateNfcEnrollmentSessionAsync(sessionRequest);
+                    Console.WriteLine($"✓ New session created: {session.SessionId}");
+                    Console.WriteLine("📍 Please tap and HOLD your card on the reader for 5 seconds...\n");
+                    
+                    // Reset timer
+                    startTime = DateTime.UtcNow;
+                    detectedCardId = null;
+                    cardAlreadyEnrolled = false;
+                    retryCount++;
+                    
+                    if (retryCount >= maxRetries)
+                    {
+                        Console.WriteLine($"⚠️  Maximum retries ({maxRetries}) reached. Please check the card and reader.");
+                    }
+                }
+            }
+            
             await Task.Delay(2000); // Poll every 2 seconds
             
-            var status = await client.Credentials.GetNfcEnrollmentStatusAsync(session.SessionId);
-            
-            if (!string.IsNullOrEmpty(status.Token) && !string.IsNullOrEmpty(status.CardId))
+            try
             {
-                detectedCardId = status.Token;
-                Console.WriteLine($"✓ Card detected! Card ID: {status.CardId}");
-                break;
+                var status = await client.Credentials.GetNfcEnrollmentStatusAsync(session.SessionId);
+                
+                // Debug logging
+                if (!string.IsNullOrEmpty(status.Token) || !string.IsNullOrEmpty(status.CardId))
+                {
+                    logger.LogInformation("Poll response - Token: {Token}, CardId: {CardId}", 
+                        string.IsNullOrEmpty(status.Token) ? "empty" : status.Token.Substring(0, 10) + "...",
+                        string.IsNullOrEmpty(status.CardId) ? "empty" : status.CardId);
+                }
+                
+                if (!string.IsNullOrEmpty(status.Token) && !string.IsNullOrEmpty(status.CardId))
+                {
+                    detectedCardId = status.Token;
+                    Console.WriteLine($"\n✓ Card detected! Card ID: {status.CardId}");
+                    break;
+                }
+                else
+                {
+                    Console.Write(".");
+                }
             }
-            else if (status.Token == null && status.CardId == null)
+            catch (UnifiAccessException ex) when (ex.ErrorCode == "CODE_CREDS_NFC_READ_POLL_TOKEN_EMPTY")
             {
-                Console.WriteLine("✗ Enrollment failed.");
+                // This is normal while waiting for a card tap - the reader hasn't detected a card yet
+                Console.Write(".");
+                logger.LogDebug("Polling: No card detected yet");
+            }
+            catch (UnifiAccessException ex) when (ex.ErrorCode == "CODE_CREDS_NFC_CARD_IS_PROVISION")
+            {
+                // Card is already enrolled to another user
+                cardAlreadyEnrolled = true;
+                Console.WriteLine($"\n⚠️  This card is already enrolled to another user.");
+                
+                // Still need to get the card token from the session
+                try
+                {
+                    var status = await client.Credentials.GetNfcEnrollmentStatusAsync(session.SessionId);
+                    if (!string.IsNullOrEmpty(status.Token))
+                    {
+                        detectedCardId = status.Token;
+                        break;
+                    }
+                }
+                catch { }
+                
+                Console.WriteLine("Unable to retrieve card token. Please try again.");
+                await client.Credentials.CancelNfcEnrollmentSessionAsync(session.SessionId);
                 return;
             }
-            else
+            catch (UnifiAccessException ex) when (ex.ErrorCode == "CODE_CREDS_NFC_READ_SESSION_NOT_FOUND")
             {
-                Console.Write(".");
+                // Session expired or was cancelled
+                Console.WriteLine($"\n✗ Enrollment session expired or was cancelled.");
+                return;
+            }
+            catch (UnifiAccessException ex) when (ex.ErrorCode == "CODE_CREDS_NFC_CARD_PROVISION_FAILED")
+            {
+                // Card was detected but not held long enough
+                Console.WriteLine($"\n⚠️  Card detected but wasn't held long enough!");
+                Console.WriteLine("   ➤ Hold the card firmly against the reader for at least 5 seconds");
+                Console.WriteLine("   ➤ Wait for the beep/light confirmation");
+                Console.WriteLine("   ➤ Press 'R' to retry with a new session, or wait to try again");
+                Console.Write("\n   Continuing to poll");
+                // Continue polling - don't break the loop
+            }
+            catch (UnifiAccessException ex) when (ex.ErrorCode == "CODE_CREDS_NFC_CARD_INVALID")
+            {
+                // Unsupported card type
+                Console.WriteLine($"\n✗ Card type not supported. Please use a UniFi Access card.");
+                await client.Credentials.CancelNfcEnrollmentSessionAsync(session.SessionId);
+                return;
+            }
+            catch (System.Text.Json.JsonException jex)
+            {
+                // JSON deserialization error
+                logger.LogError(jex, "JSON deserialization failed during polling");
+                Console.WriteLine($"\n❌ JSON Error: {jex.Message}");
+                Console.Write("   Continuing to poll...");
+            }
+            catch (UnifiAccessException ex)
+            {
+                // Log unexpected errors but continue polling unless critical
+                logger.LogWarning("Polling error: {ErrorCode} - {Message}", ex.ErrorCode, ex.Message);
+                Console.Write("!");  // Show something went wrong but keep trying
             }
         }
         
@@ -612,10 +837,26 @@ async Task RegisterNfcCard(IUnifiAccessClient client, ILogger logger)
             return;
         }
 
-        // Assign card to user
-        Console.Write("\nForce assign? (Y/N - use Y if card is already assigned): ");
-        var forceAssign = Console.ReadLine()?.Trim()?.ToUpperInvariant() == "Y";
+        // Determine if we need to force assignment
+        bool forceAssign = false;
+        if (cardAlreadyEnrolled)
+        {
+            Console.WriteLine("\n⚠️  This card is already assigned to another user.");
+            Console.Write("Do you want to FORCE reassignment to the new user? (Y/N): ");
+            var response = Console.ReadLine()?.Trim()?.ToUpperInvariant();
+            
+            if (response != "Y")
+            {
+                Console.WriteLine("✗ Assignment cancelled.");
+                await client.Credentials.CancelNfcEnrollmentSessionAsync(session.SessionId);
+                return;
+            }
+            
+            forceAssign = true;
+            Console.WriteLine("✓ Will force reassignment of the card.");
+        }
         
+        // Assign card to user
         logger.LogInformation("Assigning NFC card to user...");
         var assignRequest = new AssignNfcCardRequest
         {
@@ -623,10 +864,30 @@ async Task RegisterNfcCard(IUnifiAccessClient client, ILogger logger)
             ForceAdd = forceAssign
         };
         
-        await client.Users.AssignNfcCardToUserAsync(userId, assignRequest);
-        
-        Console.WriteLine($"\n✓ NFC card successfully assigned to user!");
-        Console.WriteLine($"  Card Token: {detectedCardId}");
+        try
+        {
+            await client.Users.AssignNfcCardToUserAsync(userId, assignRequest);
+            Console.WriteLine($"\n✓ NFC card successfully {(forceAssign ? "reassigned" : "assigned")} to user!");
+            Console.WriteLine($"  Card Token: {detectedCardId}");
+        }
+        catch (UnifiAccessException ex) when (ex.ErrorCode == "CODE_CREDS_NFC_CARD_IS_PROVISION" && !forceAssign)
+        {
+            // Card is already enrolled and we didn't force
+            Console.WriteLine($"\n⚠️  Card is already enrolled to another user.");
+            Console.Write("Do you want to FORCE reassignment? (Y/N): ");
+            
+            if (Console.ReadLine()?.Trim()?.ToUpperInvariant() == "Y")
+            {
+                assignRequest.ForceAdd = true;
+                await client.Users.AssignNfcCardToUserAsync(userId, assignRequest);
+                Console.WriteLine($"\n✓ NFC card successfully reassigned to user!");
+                Console.WriteLine($"  Card Token: {detectedCardId}");
+            }
+            else
+            {
+                Console.WriteLine("✗ Assignment cancelled.");
+            }
+        }
     }
     catch (Exception ex)
     {
@@ -1021,197 +1282,193 @@ async Task AssignPinCode(IUnifiAccessClient client, ILogger logger)
 
 async Task CompleteOnboardingWorkflow(IUnifiAccessClient client, ILogger logger)
 {
-    Console.WriteLine("\n=== Complete Employee Onboarding Workflow ===");
-    Console.WriteLine("This workflow will:");
-    Console.WriteLine("1. Create a new user");
-    Console.WriteLine("2. Assign them to a user group");
-    Console.WriteLine("3. Register an NFC card");
-    Console.WriteLine("4. Generate a PIN code");
-    Console.WriteLine("\nPress Enter to continue or Ctrl+C to cancel...");
+    Console.WriteLine("\n╔════════════════════════════════════════════╗");
+    Console.WriteLine("║     EMPLOYEE ONBOARDING WORKFLOW           ║");
+    Console.WriteLine("╚════════════════════════════════════════════╝");
+    Console.WriteLine("\nThis workflow will:");
+    Console.WriteLine("  1. Create a new user");
+    Console.WriteLine("  2. Assign them to a user group (with policies)");
+    Console.WriteLine("  3. Register an NFC card for access");
+    Console.WriteLine("\nPress Enter to begin or Ctrl+C to cancel...");
     Console.ReadLine();
 
     try
     {
-        // Step 1: Create User
-        Console.WriteLine("\n[Step 1/4] Create New User");
-        Console.WriteLine("------------------------");
-        Console.Write("First Name: ");
+        // ═══════════════════════════════════════════════════════
+        // STEP 1: CREATE NEW USER
+        // ═══════════════════════════════════════════════════════
+        Console.WriteLine("\n┌─────────────────────────────────────┐");
+        Console.WriteLine("│  STEP 1: Create New User            │");
+        Console.WriteLine("└─────────────────────────────────────┘");
+        
+        Console.Write("\nFirst Name: ");
         var firstName = Console.ReadLine()?.Trim();
         Console.Write("Last Name: ");
         var lastName = Console.ReadLine()?.Trim();
-        Console.Write("Email: ");
+        Console.Write("Email (optional): ");
         var email = Console.ReadLine()?.Trim();
-        Console.Write("Employee ID: ");
+        Console.Write("Employee ID (optional): ");
         var employeeId = Console.ReadLine()?.Trim();
 
         if (string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName))
         {
-            Console.WriteLine("Error: Name is required.");
+            Console.WriteLine("\n❌ Error: First and Last name are required.");
             return;
         }
 
-        var userRequest = new CreateUserRequest
-        {
-            FirstName = firstName,
-            LastName = lastName,
-            UserEmail = email,
-            EmployeeNumber = employeeId
-        };
-
-        logger.LogInformation("Creating user...");
-        var user = await client.Users.CreateUserAsync(userRequest);
-        Console.WriteLine($"✓ User created: {user.Id}");
-
-        // Step 2: Add to User Group
-        Console.WriteLine("\n[Step 2/4] Add to User Group");
-        Console.WriteLine("------------------------");
+        // Try to create user or use existing one
+        UserResponse user;
+        bool userAlreadyExists = false;
         
-        var groups = await client.UserGroups.GetUserGroupsAsync();
-        if (groups.Any())
+        try
         {
-            Console.WriteLine("Available groups:");
-            var groupList = groups.ToList();
-            for (int i = 0; i < groupList.Count; i++)
+            logger.LogInformation("Creating user {FirstName} {LastName}...", firstName, lastName);
+            
+            var userRequest = new CreateUserRequest
             {
-                Console.WriteLine($"{i + 1}. {groupList[i].Name}");
+                FirstName = firstName,
+                LastName = lastName,
+                UserEmail = string.IsNullOrWhiteSpace(email) ? null : email,
+                EmployeeNumber = string.IsNullOrWhiteSpace(employeeId) ? null : employeeId
+            };
+
+            user = await client.Users.CreateUserAsync(userRequest);
+            Console.WriteLine($"\n✅ User created successfully!");
+            Console.WriteLine($"   User ID: {user.Id}");
+            Console.WriteLine($"   Name: {user.FirstName} {user.LastName}");
+        }
+        catch (UnifiValidationException ex) when (ex.ErrorCode == "CODE_USER_EMPLOYEE_NUMBER_EXIST")
+        {
+            Console.WriteLine($"\n⚠️  Employee ID {employeeId} already exists.");
+            Console.Write("Do you want to continue with the existing user? (Y/N): ");
+            
+            if (Console.ReadLine()?.Trim()?.ToUpperInvariant() != "Y")
+            {
+                Console.WriteLine("❌ Onboarding cancelled.");
+                return;
             }
             
-            Console.Write("\nSelect group number (or 0 to skip): ");
+            // Find the existing user by employee ID
+            logger.LogInformation("Searching for existing user with employee ID {EmployeeId}...", employeeId);
+            var allUsers = await client.Users.GetUsersAsync();
+            var existingUser = allUsers.FirstOrDefault(u => u.EmployeeNumber == employeeId);
+            
+            if (existingUser == null)
+            {
+                Console.WriteLine("❌ Could not find user with that employee ID.");
+                return;
+            }
+            
+            user = existingUser;
+            
+            userAlreadyExists = true;
+            Console.WriteLine($"\n✅ Found existing user:");
+            Console.WriteLine($"   User ID: {user.Id}");
+            Console.WriteLine($"   Name: {user.FirstName} {user.LastName}");
+            Console.WriteLine($"   Email: {user.UserEmail ?? "Not provided"}");
+        }
+
+        // ═══════════════════════════════════════════════════════
+        // STEP 2: ASSIGN TO USER GROUP
+        // ═══════════════════════════════════════════════════════
+        Console.WriteLine("\n┌─────────────────────────────────────┐");
+        Console.WriteLine("│  STEP 2: Assign to User Group       │");
+        Console.WriteLine("└─────────────────────────────────────┘");
+        
+        if (userAlreadyExists)
+        {
+            Console.WriteLine("\n⚠️  User already exists. They may already be assigned to groups.");
+            Console.Write("Do you want to add them to another group? (Y/N): ");
+            
+            if (Console.ReadLine()?.Trim()?.ToUpperInvariant() != "Y")
+            {
+                Console.WriteLine("➤ Skipping group assignment.");
+                goto SkipGroupAssignment;
+            }
+        }
+        
+        logger.LogInformation("Fetching user groups...");
+        var groups = await client.UserGroups.GetUserGroupsAsync();
+        var groupList = groups.ToList();
+        
+        if (!groupList.Any())
+        {
+            Console.WriteLine("\n⚠️  No user groups available. Skipping group assignment.");
+        }
+        else
+        {
+            Console.WriteLine("\nAvailable User Groups (with access policies):");
+            Console.WriteLine("──────────────────────────────────────────────");
+            
+            for (int i = 0; i < groupList.Count; i++)
+            {
+                var group = groupList[i];
+                Console.WriteLine($"\n[{i + 1}] {group.Name}");
+                if (!string.IsNullOrWhiteSpace(group.Description))
+                {
+                    Console.WriteLine($"    Description: {group.Description}");
+                }
+            }
+            
+            Console.Write("\n➤ Select group number: ");
             if (int.TryParse(Console.ReadLine(), out int groupIndex) && groupIndex > 0 && groupIndex <= groupList.Count)
             {
                 var selectedGroup = groupList[groupIndex - 1];
+                
+                logger.LogInformation("Adding user to group {GroupName}...", selectedGroup.Name);
+                
                 var assignRequest = new AssignUsersToGroupRequest
                 {
                     UserIds = new List<string> { user.Id }
                 };
                 
-                logger.LogInformation("Adding user to group...");
                 await client.UserGroups.AssignUsersToGroupAsync(selectedGroup.Id, assignRequest);
-                Console.WriteLine($"✓ User added to group: {selectedGroup.Name}");
-            }
-        }
-        else
-        {
-            Console.WriteLine("No user groups available. Skipping...");
-        }
-
-        // Step 3: Register NFC Card
-        Console.WriteLine("\n[Step 3/4] Register NFC Card");
-        Console.WriteLine("------------------------");
-        Console.WriteLine("Options:");
-        Console.WriteLine("1. Enroll new card with reader");
-        Console.WriteLine("2. Import existing card by ID");
-        Console.WriteLine("3. Skip NFC card");
-        Console.Write("\nSelect option: ");
-        
-        var nfcOption = Console.ReadLine()?.Trim();
-        
-        if (nfcOption == "1")
-        {
-            // Enroll with reader
-            var devices = await client.Devices.GetDevicesAsync();
-            var nfcDevices = devices.Where(d => d.Type == "UAH" || d.Type == "UAHP").ToList();
-            
-            if (nfcDevices.Any())
-            {
-                Console.WriteLine("\nNFC Devices:");
-                for (int i = 0; i < nfcDevices.Count; i++)
-                {
-                    Console.WriteLine($"{i + 1}. {nfcDevices[i].Name}");
-                }
-                
-                Console.Write("Select device: ");
-                if (int.TryParse(Console.ReadLine(), out int deviceIndex) && deviceIndex > 0 && deviceIndex <= nfcDevices.Count)
-                {
-                    var device = nfcDevices[deviceIndex - 1];
-                    var sessionRequest = new CreateNfcEnrollmentSessionRequest
-                    {
-                        DeviceId = device.Id
-                    };
-                    
-                    var session = await client.Credentials.CreateNfcEnrollmentSessionAsync(sessionRequest);
-                    Console.WriteLine($"\n⏳ Tap NFC card on {device.Name} within 60 seconds...");
-                    
-                    // Poll for enrollment
-                    var startTime = DateTime.UtcNow;
-                    while (DateTime.UtcNow - startTime < TimeSpan.FromSeconds(60))
-                    {
-                        await Task.Delay(2000);
-                        var status = await client.Credentials.GetNfcEnrollmentStatusAsync(session.SessionId);
-                        
-                        if (!string.IsNullOrEmpty(status.Token))
-                        {
-                            var assignNfcRequest = new AssignNfcCardRequest
-                            {
-                                Token = status.Token
-                            };
-                            
-                            await client.Users.AssignNfcCardToUserAsync(user.Id, assignNfcRequest);
-                            Console.WriteLine($"✓ NFC card enrolled and assigned");
-                            break;
-                        }
-                    }
-                }
+                Console.WriteLine($"\n✅ User added to group: {selectedGroup.Name}");
+                Console.WriteLine("   (Access policies from this group are now active)");
             }
             else
             {
-                Console.WriteLine("No NFC devices available");
-            }
-        }
-        else if (nfcOption == "2")
-        {
-            Console.Write("Enter NFC ID: ");
-            var nfcId = Console.ReadLine()?.Trim();
-            
-            if (!string.IsNullOrWhiteSpace(nfcId))
-            {
-                // Import the card first
-                var csvContent = Encoding.UTF8.GetBytes($"nfc_id,alias\n{nfcId},{firstName}'s Card");
-                var importRequest = new ImportNfcCardsRequest
-                {
-                    FileContent = csvContent,
-                    FileName = "import.csv"
-                };
-                
-                var imported = await client.Credentials.ImportNfcCardsAsync(importRequest);
-                var importedCard = imported.FirstOrDefault();
-                
-                if (importedCard?.Token != null)
-                {
-                    var assignNfcRequest = new AssignNfcCardRequest
-                    {
-                        Token = importedCard.Token
-                    };
-                    
-                    await client.Users.AssignNfcCardToUserAsync(user.Id, assignNfcRequest);
-                    Console.WriteLine($"✓ NFC card imported and assigned");
-                }
+                Console.WriteLine("\n⚠️  Invalid selection. Skipping group assignment.");
             }
         }
 
-        // Step 4: Generate PIN
-        Console.WriteLine("\n[Step 4/4] Generate PIN Code");
-        Console.WriteLine("------------------------");
+        SkipGroupAssignment:
         
-        logger.LogInformation("Generating PIN code...");
-        var pinCode = await client.Credentials.GeneratePinCodeAsync();
+        // ═══════════════════════════════════════════════════════
+        // STEP 3: REGISTER NFC CARD
+        // ═══════════════════════════════════════════════════════
+        Console.WriteLine("\n┌─────────────────────────────────────┐");
+        Console.WriteLine("│  STEP 3: Register NFC Card          │");
+        Console.WriteLine("└─────────────────────────────────────┘");
         
-        var pinRequest = new AssignPinCodeRequest
+        Console.WriteLine("\nWould you like to register an NFC card for this user? (Y/N): ");
+        var registerCard = Console.ReadLine()?.Trim()?.ToUpperInvariant();
+        
+        string? nfcOption = registerCard == "Y" ? "1" : "skip";
+        
+        if (nfcOption == "1")
         {
-            PinCode = pinCode
-        };
-        
-        await client.Users.AssignPinCodeToUserAsync(user.Id, pinRequest);
-        Console.WriteLine($"✓ PIN code generated: {pinCode}");
+            // Use our existing NFC enrollment function but with the specific user ID
+            await RegisterNfcCardForUser(client, logger, user.Id, firstName, lastName);
+        }
+        else
+        {
+            Console.WriteLine("➤ Skipping NFC card registration.");
+        }
 
-        // Summary
-        Console.WriteLine("\n=== Onboarding Complete! ===");
-        Console.WriteLine($"User: {firstName} {lastName}");
-        Console.WriteLine($"ID: {user.Id}");
-        Console.WriteLine($"Email: {email ?? "N/A"}");
-        Console.WriteLine($"Employee ID: {employeeId ?? "N/A"}");
-        Console.WriteLine($"PIN Code: {pinCode}");
-        Console.WriteLine("\n✓ User is ready for access!");
+        // ═══════════════════════════════════════════════════════
+        // ONBOARDING COMPLETE
+        // ═══════════════════════════════════════════════════════
+        Console.WriteLine("\n╔════════════════════════════════════════════╗");
+        Console.WriteLine("║     ONBOARDING COMPLETE! 🎉                ║");
+        Console.WriteLine("╚════════════════════════════════════════════╝");
+        
+        Console.WriteLine($"\n📋 Summary:");
+        Console.WriteLine($"   Name: {firstName} {lastName}");
+        Console.WriteLine($"   User ID: {user.Id}");
+        Console.WriteLine($"   Email: {email ?? "Not provided"}");
+        Console.WriteLine($"   Employee ID: {employeeId ?? "Not provided"}");
+        Console.WriteLine($"\n✅ User is ready for access!");
     }
     catch (Exception ex)
     {

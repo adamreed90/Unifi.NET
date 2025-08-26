@@ -36,4 +36,9 @@ public interface IUnifiAccessClient
     /// Gets the user group service for managing user groups.
     /// </summary>
     IUserGroupService UserGroups { get; }
+
+    /// <summary>
+    /// Gets the system log service for accessing audit logs and access history.
+    /// </summary>
+    ISystemLogService SystemLogs { get; }
 }

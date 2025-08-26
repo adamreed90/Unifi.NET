@@ -20,6 +20,7 @@ public sealed class UnifiAccessClient : IUnifiAccessClient, IDisposable
     private readonly CredentialService _credentialService;
     private readonly DeviceService _deviceService;
     private readonly UserGroupService _userGroupService;
+    private readonly SystemLogService _systemLogService;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="UnifiAccessClient"/> class.
@@ -53,6 +54,7 @@ public sealed class UnifiAccessClient : IUnifiAccessClient, IDisposable
         _credentialService = new CredentialService(_restClient, configuration);
         _deviceService = new DeviceService(_restClient, configuration);
         _userGroupService = new UserGroupService(_restClient, configuration);
+        _systemLogService = new SystemLogService(_restClient, configuration);
     }
 
     /// <summary>
@@ -74,6 +76,7 @@ public sealed class UnifiAccessClient : IUnifiAccessClient, IDisposable
         _credentialService = new CredentialService(_restClient, configuration);
         _deviceService = new DeviceService(_restClient, configuration);
         _userGroupService = new UserGroupService(_restClient, configuration);
+        _systemLogService = new SystemLogService(_restClient, configuration);
     }
 
     /// <inheritdoc />
@@ -93,6 +96,9 @@ public sealed class UnifiAccessClient : IUnifiAccessClient, IDisposable
 
     /// <inheritdoc />
     public IUserGroupService UserGroups => _userGroupService;
+
+    /// <inheritdoc />
+    public ISystemLogService SystemLogs => _systemLogService;
 
     /// <summary>
     /// Disposes the client and its resources.

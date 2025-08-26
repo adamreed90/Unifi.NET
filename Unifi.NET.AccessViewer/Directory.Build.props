@@ -1,0 +1,8 @@
+<Project>
+  <PropertyGroup>
+    <!-- Blazor WebAssembly doesn't support Native AOT -->
+    <PublishAot Condition="'$(TargetFramework)' == 'net9.0' AND '$(OutputType)' != 'Library'">false</PublishAot>
+    <IsAotCompatible>false</IsAotCompatible>
+    <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
+  </PropertyGroup>
+</Project>

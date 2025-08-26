@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <ProjectReference Include="..\..\Unifi.NET.Access\Unifi.NET.Access.csproj" />
+    <ProjectReference Include="..\Unifi.NET.AccessViewer.Shared\Unifi.NET.AccessViewer.Shared.csproj" />
+  </ItemGroup>
+
+</Project>

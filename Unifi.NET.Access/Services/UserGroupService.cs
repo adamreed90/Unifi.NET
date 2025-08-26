@@ -77,7 +77,8 @@ public sealed class UserGroupService : BaseService, IUserGroupService
     {
         ArgumentException.ThrowIfNullOrEmpty(groupId);
         ArgumentNullException.ThrowIfNull(request);
-        await PostAsync<object>($"/api/v1/developer/user_groups/{groupId}/users", request, cancellationToken);
+        // API expects a plain array of user IDs, not an object
+        await PostAsync<object>($"/api/v1/developer/user_groups/{groupId}/users", request.UserIds, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -86,11 +87,11 @@ public sealed class UserGroupService : BaseService, IUserGroupService
         ArgumentException.ThrowIfNullOrEmpty(groupId);
         ArgumentNullException.ThrowIfNull(request);
         
-        // Use DELETE with body for removing users
+        // Use DELETE with body for removing users - API expects a plain array
         var restRequest = new RestRequest($"/api/v1/developer/user_groups/{groupId}/users", Method.Delete);
         restRequest.AddHeader("Authorization", $"Bearer {Configuration.ApiToken}");
         restRequest.AddHeader("Content-Type", "application/json");
-        restRequest.AddJsonBody(request);
+        restRequest.AddJsonBody(request.UserIds);
         
         var response = await Client.ExecuteAsync(restRequest, cancellationToken);
         if (!response.IsSuccessful)

@@ -32,7 +32,8 @@ public static class UnifiAccessJsonContext
                         CredentialJsonContext.Default,
                         AccessPolicyJsonContext.Default,
                         DoorJsonContext.Default,
-                        DeviceJsonContext.Default
+                        DeviceJsonContext.Default,
+                        SystemLogJsonContext.Default
                     );
                 }
             }

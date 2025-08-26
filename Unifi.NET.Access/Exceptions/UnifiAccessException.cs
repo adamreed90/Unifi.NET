@@ -102,11 +102,15 @@ public static class UnifiErrorCodeMapper
                 => new UnifiAuthenticationException(fullMessage, errorCode, statusCode),
             
             "CODE_RESOURCE_NOT_FOUND" or "CODE_NOT_EXISTS" or "CODE_USER_ACCOUNT_NOT_EXIST" or 
-            "CODE_USER_WORKER_NOT_EXISTS" or "CODE_DEVICE_DEVICE_NOT_FOUND"
+            "CODE_USER_WORKER_NOT_EXISTS" or "CODE_DEVICE_DEVICE_NOT_FOUND" or
+            "CODE_CREDS_NFC_READ_SESSION_NOT_FOUND"
                 => new UnifiNotFoundException(fullMessage, errorCode, statusCode),
             
             "CODE_PARAMS_INVALID" or "CODE_USER_EMAIL_ERROR" or "CODE_USER_NAME_DUPLICATED" or
-            "CODE_CREDS_PIN_CODE_CREDS_LENGTH_INVALID"
+            "CODE_CREDS_PIN_CODE_CREDS_LENGTH_INVALID" or "CODE_CREDS_NFC_CARD_IS_PROVISION" or
+            "CODE_CREDS_NFC_HAS_BIND_USER" or "CODE_CREDS_NFC_CARD_INVALID" or 
+            "CODE_CREDS_PIN_CODE_CREDS_ALREADY_EXIST" or "CODE_CREDS_NFC_CARD_PROVISION_FAILED" or
+            "CODE_USER_EMPLOYEE_NUMBER_EXIST"
                 => new UnifiValidationException(fullMessage, errorCode, statusCode),
             
             "CODE_OPERATION_FORBIDDEN" or "CODE_DEVICE_DEVICE_BUSY" or "CODE_DEVICE_DEVICE_OFFLINE"

@@ -455,6 +455,10 @@ coverage.cobertura.xml
 # Local settings
 appsettings.local.json
 appsettings.*.local.json
+appsettings.Development.json
+appsettings.Production.json
+!appsettings.json
+!appsettings.*.json.example
 
 # Secrets
 *.key
@@ -462,3 +466,7 @@ appsettings.*.local.json
 *.cer
 *.pem
 secrets.json
+
+# UniFi credentials - NEVER commit these!
+unifi-config.json
+unifi-credentials.txt

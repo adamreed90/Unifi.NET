@@ -123,8 +123,14 @@ public abstract class BaseService
         {
             throw UnifiErrorCodeMapper.MapError(apiResponse.Code, apiResponse.Message, (int?)response.StatusCode);
         }
+        
+        // Handle null data for successful responses
+        if (apiResponse.Data == null)
+        {
+            return default!;
+        }
 
-        return apiResponse.Data!;
+        return apiResponse.Data;
     }
 
     /// <summary>
@@ -134,6 +140,12 @@ public abstract class BaseService
     {
         var statusCode = (int)response.StatusCode;
         var errorMessage = response.ErrorMessage ?? response.Content ?? "Unknown error";
+
+        // Log the raw response for debugging
+        if (!string.IsNullOrEmpty(response.Content))
+        {
+            System.Console.WriteLine($"[DEBUG] API Error Response: {response.Content}");
+        }
 
         // Try to parse error response using JsonDocument for AOT compatibility
         if (!string.IsNullOrEmpty(response.Content))

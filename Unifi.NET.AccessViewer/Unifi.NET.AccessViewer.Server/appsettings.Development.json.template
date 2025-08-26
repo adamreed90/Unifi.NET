@@ -1,0 +1,14 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "UnifiAccess": {
+    "BaseUrl": "https://YOUR_UNIFI_ACCESS_IP:12445",
+    "ApiToken": "YOUR_API_TOKEN_HERE",
+    "ValidateSslCertificate": false,
+    "TimeoutSeconds": 30
+  }
+}
