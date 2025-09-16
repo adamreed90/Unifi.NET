@@ -71,6 +71,9 @@ The sample provides a comprehensive menu demonstrating all major SDK capabilitie
 #### Device Management
 - **List Devices** - View all UniFi Access devices with details
 
+#### Reporting
+- **Export Last Activity Report (CSV)** - Generate CSV report of all users' last door access activity, sorted from oldest to newest
+
 ### Native AOT Compilation
 
 This sample fully supports Native AOT compilation for optimal performance and minimal memory footprint:

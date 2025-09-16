@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 namespace Unifi.NET.Access.Models.SystemLogs;
 
 /// <summary>
-/// Response model for system logs query.
+/// Response model for system logs query data section.
 /// </summary>
 public sealed class SystemLogResponse
 {
@@ -12,49 +12,29 @@ public sealed class SystemLogResponse
     /// </summary>
     [JsonPropertyName("hits")]
     public List<SystemLogEntry> Hits { get; set; } = new();
-
-    /// <summary>
-    /// Pagination information.
-    /// </summary>
-    [JsonPropertyName("pagination")]
-    public SystemLogPagination? Pagination { get; set; }
-    
-    /// <summary>
-    /// Gets the current page number from pagination.
-    /// </summary>
-    [JsonIgnore]
-    public int Page => Pagination?.PageNum ?? 1;
-
-    /// <summary>
-    /// Gets the total number of log entries from pagination.
-    /// </summary>
-    [JsonIgnore]
-    public int Total => Pagination?.Total ?? 0;
 }
 
 /// <summary>
-/// Pagination information for system logs.
+/// System log query response with pagination information.
 /// </summary>
-public sealed class SystemLogPagination
+public sealed class SystemLogQueryResponse
 {
+    /// <summary>
+    /// List of log entries.
+    /// </summary>
+    public List<SystemLogEntry> Hits { get; set; } = new();
+
     /// <summary>
     /// Current page number.
     /// </summary>
-    [JsonPropertyName("page_num")]
-    public int PageNum { get; set; }
+    public int Page { get; set; } = 1;
 
     /// <summary>
-    /// Page size.
+    /// Total number of log entries.
     /// </summary>
-    [JsonPropertyName("page_size")]
-    public int PageSize { get; set; }
-
-    /// <summary>
-    /// Total number of records.
-    /// </summary>
-    [JsonPropertyName("total")]
-    public int Total { get; set; }
+    public int Total { get; set; } = 0;
 }
+
 
 /// <summary>
 /// Individual system log entry.

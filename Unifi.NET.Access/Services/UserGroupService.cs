@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using RestSharp;
 using Unifi.NET.Access.Configuration;
+using Unifi.NET.Access.Exceptions;
 using Unifi.NET.Access.Models;
 using Unifi.NET.Access.Models.UserGroups;
 using Unifi.NET.Access.Models.Users;
@@ -33,7 +34,7 @@ public sealed class UserGroupService : BaseService, IUserGroupService
     }
 
     /// <inheritdoc />
-    public async Task<IEnumerable<UserGroupResponse>> GetUserGroupsAsync(int? pageNum = null, int? pageSize = null, CancellationToken cancellationToken = default)
+    public async Task<PaginatedResponse<List<UserGroupResponse>>> GetUserGroupsAsync(int? pageNum = null, int? pageSize = null, CancellationToken cancellationToken = default)
     {
         var query = new List<string>();
         if (pageNum.HasValue)
@@ -46,8 +47,51 @@ public sealed class UserGroupService : BaseService, IUserGroupService
         }
 
         var queryString = query.Count > 0 ? "?" + string.Join("&", query) : "";
-        var groups = await GetAsync<List<UserGroupResponse>>($"/api/v1/developer/user_groups{queryString}", cancellationToken);
-        return groups ?? new List<UserGroupResponse>();
+
+        // Use direct API call to get pagination info
+        var apiRequest = CreateRequest($"/api/v1/developer/user_groups{queryString}", Method.Get);
+        var response = await Client.ExecuteAsync(apiRequest, cancellationToken);
+
+        if (!response.IsSuccessful)
+        {
+            var statusCode = (int)response.StatusCode;
+            var errorMessage = response.ErrorMessage ?? response.Content ?? "Unknown error";
+            throw new UnifiAccessException($"API request failed: {errorMessage}", "API_ERROR", statusCode);
+        }
+
+        if (string.IsNullOrEmpty(response.Content))
+        {
+            return new PaginatedResponse<List<UserGroupResponse>>
+            {
+                Items = new List<UserGroupResponse>(),
+                Page = pageNum ?? 1,
+                PageSize = pageSize ?? 25,
+                Total = 0
+            };
+        }
+
+        // Deserialize using source-generated JSON
+        var jsonTypeInfo = (JsonTypeInfo<UnifiApiResponse<List<UserGroupResponse>>>)_jsonOptions.GetTypeInfo(typeof(UnifiApiResponse<List<UserGroupResponse>>));
+        var apiResponse = JsonSerializer.Deserialize(response.Content, jsonTypeInfo);
+
+        if (apiResponse == null)
+        {
+            throw new UnifiAccessException("Response data is null", "NULL_RESPONSE");
+        }
+
+        // Check for API-level errors
+        if (apiResponse.Code != "SUCCESS")
+        {
+            throw UnifiErrorCodeMapper.MapError(apiResponse.Code, apiResponse.Message, (int?)response.StatusCode);
+        }
+
+        return new PaginatedResponse<List<UserGroupResponse>>
+        {
+            Items = apiResponse.Data ?? new List<UserGroupResponse>(),
+            Page = apiResponse.Pagination?.PageNum ?? pageNum ?? 1,
+            PageSize = apiResponse.Pagination?.PageSize ?? pageSize ?? 25,
+            Total = apiResponse.Pagination?.Total ?? 0
+        };
     }
 
     /// <inheritdoc />
@@ -101,10 +145,10 @@ public sealed class UserGroupService : BaseService, IUserGroupService
     }
 
     /// <inheritdoc />
-    public async Task<IEnumerable<UserResponse>> GetUsersInGroupAsync(string groupId, int? pageNum = null, int? pageSize = null, CancellationToken cancellationToken = default)
+    public async Task<PaginatedResponse<List<UserResponse>>> GetUsersInGroupAsync(string groupId, int? pageNum = null, int? pageSize = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(groupId);
-        
+
         var query = new List<string>();
         if (pageNum.HasValue)
         {
@@ -116,8 +160,51 @@ public sealed class UserGroupService : BaseService, IUserGroupService
         }
 
         var queryString = query.Count > 0 ? "?" + string.Join("&", query) : "";
-        var users = await GetAsync<List<UserResponse>>($"/api/v1/developer/user_groups/{groupId}/users{queryString}", cancellationToken);
-        return users ?? new List<UserResponse>();
+
+        // Use direct API call to get pagination info
+        var apiRequest = CreateRequest($"/api/v1/developer/user_groups/{groupId}/users{queryString}", Method.Get);
+        var response = await Client.ExecuteAsync(apiRequest, cancellationToken);
+
+        if (!response.IsSuccessful)
+        {
+            var statusCode = (int)response.StatusCode;
+            var errorMessage = response.ErrorMessage ?? response.Content ?? "Unknown error";
+            throw new UnifiAccessException($"API request failed: {errorMessage}", "API_ERROR", statusCode);
+        }
+
+        if (string.IsNullOrEmpty(response.Content))
+        {
+            return new PaginatedResponse<List<UserResponse>>
+            {
+                Items = new List<UserResponse>(),
+                Page = pageNum ?? 1,
+                PageSize = pageSize ?? 25,
+                Total = 0
+            };
+        }
+
+        // Deserialize using source-generated JSON
+        var jsonTypeInfo = (JsonTypeInfo<UnifiApiResponse<List<UserResponse>>>)_jsonOptions.GetTypeInfo(typeof(UnifiApiResponse<List<UserResponse>>));
+        var apiResponse = JsonSerializer.Deserialize(response.Content, jsonTypeInfo);
+
+        if (apiResponse == null)
+        {
+            throw new UnifiAccessException("Response data is null", "NULL_RESPONSE");
+        }
+
+        // Check for API-level errors
+        if (apiResponse.Code != "SUCCESS")
+        {
+            throw UnifiErrorCodeMapper.MapError(apiResponse.Code, apiResponse.Message, (int?)response.StatusCode);
+        }
+
+        return new PaginatedResponse<List<UserResponse>>
+        {
+            Items = apiResponse.Data ?? new List<UserResponse>(),
+            Page = apiResponse.Pagination?.PageNum ?? pageNum ?? 1,
+            PageSize = apiResponse.Pagination?.PageSize ?? pageSize ?? 25,
+            Total = apiResponse.Pagination?.Total ?? 0
+        };
     }
 
     /// <inheritdoc />

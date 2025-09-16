@@ -25,6 +25,8 @@ namespace Unifi.NET.Access.Serialization.Contexts;
 [JsonSerializable(typeof(List<ImportNfcCardsResponse>))]
 // PIN Code types
 [JsonSerializable(typeof(AssignPinCodeRequest))]
+// Paginated response types
+[JsonSerializable(typeof(PaginatedResponse<List<NfcCardResponse>>))]
 // API wrapper types
 [JsonSerializable(typeof(UnifiApiResponse<NfcEnrollmentSessionResponse>))]
 [JsonSerializable(typeof(UnifiApiResponse<NfcEnrollmentStatusResponse>))]

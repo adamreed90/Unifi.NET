@@ -10,7 +10,7 @@ namespace Unifi.NET.Access.Serialization.Contexts;
 [JsonSourceGenerationOptions(WriteIndented = false)]
 [JsonSerializable(typeof(SystemLogRequest))]
 [JsonSerializable(typeof(SystemLogResponse))]
-[JsonSerializable(typeof(SystemLogPagination))]
+[JsonSerializable(typeof(SystemLogQueryResponse))]
 [JsonSerializable(typeof(SystemLogEntry))]
 [JsonSerializable(typeof(SystemLogSource))]
 [JsonSerializable(typeof(SystemLogActor))]

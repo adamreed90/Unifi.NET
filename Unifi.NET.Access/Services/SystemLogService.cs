@@ -26,7 +26,7 @@ public sealed class SystemLogService : BaseService, ISystemLogService
     }
 
     /// <inheritdoc />
-    public async Task<SystemLogResponse> GetSystemLogsAsync(
+    public async Task<SystemLogQueryResponse> GetSystemLogsAsync(
         SystemLogRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -34,7 +34,7 @@ public sealed class SystemLogService : BaseService, ISystemLogService
     }
 
     /// <inheritdoc />
-    public async Task<SystemLogResponse> GetSystemLogsAsync(
+    public async Task<SystemLogQueryResponse> GetSystemLogsAsync(
         SystemLogRequest request,
         int pageNum,
         int pageSize,
@@ -60,19 +60,36 @@ public sealed class SystemLogService : BaseService, ISystemLogService
 
         if (!response.IsSuccessful)
         {
-            throw new UnifiAccessException($"Failed to fetch system logs: {response.StatusCode}", "CODE_SYSTEM_ERROR", (int?)response.StatusCode);
+            var errorMessage = $"Failed to fetch system logs: {response.StatusCode}";
+            if (!string.IsNullOrEmpty(response.Content))
+            {
+                errorMessage += $" - Response: {response.Content}";
+            }
+            if (response.ErrorException != null)
+            {
+                errorMessage += $" - Exception: {response.ErrorException.Message}";
+            }
+            throw new UnifiAccessException(errorMessage, "CODE_SYSTEM_ERROR", (int?)response.StatusCode);
         }
 
         // Use source-generated JSON deserialization
         var jsonTypeInfo = (JsonTypeInfo<UnifiApiResponse<SystemLogResponse>>)_jsonOptions.GetTypeInfo(typeof(UnifiApiResponse<SystemLogResponse>));
         var result = JsonSerializer.Deserialize(response.Content ?? string.Empty, jsonTypeInfo);
-        
+
         if (result?.Data == null)
         {
             throw new UnifiAccessException("Invalid response from API", "NULL_RESPONSE");
         }
 
-        return result.Data;
+        // Create a wrapper response that includes pagination information
+        var logResponse = new SystemLogQueryResponse
+        {
+            Hits = result.Data.Hits,
+            Page = result.Pagination?.PageNum ?? 1,
+            Total = result.Pagination?.Total ?? 0
+        };
+
+        return logResponse;
     }
 
     /// <inheritdoc />

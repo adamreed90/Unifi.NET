@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using RestSharp;
 using Unifi.NET.Access.Configuration;
+using Unifi.NET.Access.Exceptions;
 using Unifi.NET.Access.Models;
 using Unifi.NET.Access.Models.Credentials;
 using Unifi.NET.Access.Serialization;
@@ -54,7 +55,7 @@ public sealed class CredentialService : BaseService, ICredentialService
     }
 
     /// <inheritdoc />
-    public async Task<IEnumerable<NfcCardResponse>> GetNfcCardsAsync(int? pageNum = null, int? pageSize = null, CancellationToken cancellationToken = default)
+    public async Task<PaginatedResponse<List<NfcCardResponse>>> GetNfcCardsAsync(int? pageNum = null, int? pageSize = null, CancellationToken cancellationToken = default)
     {
         var query = new List<string>();
         if (pageNum.HasValue)
@@ -67,8 +68,51 @@ public sealed class CredentialService : BaseService, ICredentialService
         }
 
         var queryString = query.Count > 0 ? "?" + string.Join("&", query) : "";
-        var cards = await GetAsync<List<NfcCardResponse>>($"/api/v1/developer/credentials/nfc_cards/tokens{queryString}", cancellationToken);
-        return cards ?? new List<NfcCardResponse>();
+
+        // Use direct API call to get pagination info
+        var apiRequest = CreateRequest($"/api/v1/developer/credentials/nfc_cards/tokens{queryString}", Method.Get);
+        var response = await Client.ExecuteAsync(apiRequest, cancellationToken);
+
+        if (!response.IsSuccessful)
+        {
+            var statusCode = (int)response.StatusCode;
+            var errorMessage = response.ErrorMessage ?? response.Content ?? "Unknown error";
+            throw new UnifiAccessException($"API request failed: {errorMessage}", "API_ERROR", statusCode);
+        }
+
+        if (string.IsNullOrEmpty(response.Content))
+        {
+            return new PaginatedResponse<List<NfcCardResponse>>
+            {
+                Items = new List<NfcCardResponse>(),
+                Page = pageNum ?? 1,
+                PageSize = pageSize ?? 25,
+                Total = 0
+            };
+        }
+
+        // Deserialize using source-generated JSON
+        var jsonTypeInfo = (JsonTypeInfo<UnifiApiResponse<List<NfcCardResponse>>>)_jsonOptions.GetTypeInfo(typeof(UnifiApiResponse<List<NfcCardResponse>>));
+        var apiResponse = JsonSerializer.Deserialize(response.Content, jsonTypeInfo);
+
+        if (apiResponse == null)
+        {
+            throw new UnifiAccessException("Response data is null", "NULL_RESPONSE");
+        }
+
+        // Check for API-level errors
+        if (apiResponse.Code != "SUCCESS")
+        {
+            throw UnifiErrorCodeMapper.MapError(apiResponse.Code, apiResponse.Message, (int?)response.StatusCode);
+        }
+
+        return new PaginatedResponse<List<NfcCardResponse>>
+        {
+            Items = apiResponse.Data ?? new List<NfcCardResponse>(),
+            Page = apiResponse.Pagination?.PageNum ?? pageNum ?? 1,
+            PageSize = apiResponse.Pagination?.PageSize ?? pageSize ?? 25,
+            Total = apiResponse.Pagination?.Total ?? 0
+        };
     }
 
     /// <inheritdoc />

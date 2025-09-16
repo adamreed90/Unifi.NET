@@ -19,6 +19,8 @@ namespace Unifi.NET.Access.Serialization.Contexts;
 [JsonSerializable(typeof(AccessPolicyInfo))]
 [JsonSerializable(typeof(List<UserResponse>))]
 [JsonSerializable(typeof(List<AccessPolicyInfo>))]
+// Paginated response types
+[JsonSerializable(typeof(PaginatedResponse<List<UserResponse>>))]
 // API wrapper types
 [JsonSerializable(typeof(UnifiApiResponse<UserResponse>))]
 [JsonSerializable(typeof(UnifiApiResponse<List<UserResponse>>))]

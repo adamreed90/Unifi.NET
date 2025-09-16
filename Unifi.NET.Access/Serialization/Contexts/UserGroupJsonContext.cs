@@ -20,6 +20,8 @@ namespace Unifi.NET.Access.Serialization.Contexts;
 [JsonSerializable(typeof(ImportUserGroupsResponse))]
 [JsonSerializable(typeof(List<UserGroupResponse>))]
 [JsonSerializable(typeof(List<ImportUserGroupsResponse>))]
+// Paginated response types
+[JsonSerializable(typeof(PaginatedResponse<List<UserGroupResponse>>))]
 // API wrapper types
 [JsonSerializable(typeof(UnifiApiResponse<UserGroupResponse>))]
 [JsonSerializable(typeof(UnifiApiResponse<List<UserGroupResponse>>))]

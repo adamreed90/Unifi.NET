@@ -1,5 +1,6 @@
 using Unifi.NET.Access.Models.AccessPolicies;
 using Unifi.NET.Access.Models.Credentials;
+using Unifi.NET.Access.Models;
 using Unifi.NET.Access.Models.Users;
 
 namespace Unifi.NET.Access.Services;
@@ -47,8 +48,8 @@ public interface IUserService
     /// <param name="pageNum">Page number (1-based).</param>
     /// <param name="pageSize">Number of items per page.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>List of users for the specified page.</returns>
-    Task<IEnumerable<UserResponse>> GetUsersAsync(int pageNum, int pageSize, CancellationToken cancellationToken = default);
+    /// <returns>Paginated list of users for the specified page.</returns>
+    Task<PaginatedResponse<List<UserResponse>>> GetUsersAsync(int pageNum, int pageSize, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Deletes a user.

@@ -10,6 +10,7 @@ using Unifi.NET.Access.Models.Users;
 using Unifi.NET.Access.Models.UserGroups;
 using Unifi.NET.Access.Models.Devices;
 using Unifi.NET.Access.Models.Doors;
+using Unifi.NET.Access.Models.SystemLogs;
 using System.Text;
 
 var host = Host.CreateDefaultBuilder(args)
@@ -85,7 +86,8 @@ try
         
         Console.WriteLine("\n-- System --");
         Console.WriteLine("16. List devices");
-        Console.WriteLine("17. Exit");
+        Console.WriteLine("17. Export Last Activity Report (CSV)");
+        Console.WriteLine("18. Exit");
         Console.Write("\nSelect option: ");
         
         var choice = Console.ReadLine()?.Trim();
@@ -141,6 +143,9 @@ try
                 await ListDevices(client, logger);
                 break;
             case "17":
+                await ExportLastActivityReport(client, logger);
+                break;
+            case "18":
                 exit = true;
                 break;
             default:
@@ -329,16 +334,17 @@ async Task ListUserGroups(IUnifiAccessClient client, ILogger logger)
     try
     {
         logger.LogInformation("Fetching user groups...");
-        var groups = await client.UserGroups.GetUserGroupsAsync();
-        
+        var groupsResponse = await client.UserGroups.GetUserGroupsAsync();
+        var groups = groupsResponse.Items;
+
         if (!groups.Any())
         {
             Console.WriteLine("No user groups found.");
             return;
         }
 
-        Console.WriteLine($"\nFound {groups.Count()} user groups:\n");
-        
+        Console.WriteLine($"\nFound {groups.Count} user groups (Page {groupsResponse.Page} of {groupsResponse.TotalPages}):\n");
+
         foreach (var group in groups)
         {
             Console.WriteLine($"• {group.Name}");
@@ -442,16 +448,17 @@ async Task ViewUsersInGroup(IUnifiAccessClient client, ILogger logger)
     try
     {
         logger.LogInformation("Fetching users in group {GroupId}...", groupId);
-        var users = await client.UserGroups.GetUsersInGroupAsync(groupId);
-        
+        var usersResponse = await client.UserGroups.GetUsersInGroupAsync(groupId);
+        var users = usersResponse.Items;
+
         if (!users.Any())
         {
             Console.WriteLine("No users found in this group.");
             return;
         }
 
-        Console.WriteLine($"\nFound {users.Count()} users in group:\n");
-        
+        Console.WriteLine($"\nFound {users.Count} users in group (Page {usersResponse.Page} of {usersResponse.TotalPages}):\n");
+
         foreach (var user in users)
         {
             Console.WriteLine($"• {user.FirstName} {user.LastName}");
@@ -978,15 +985,16 @@ async Task ListNfcCards(IUnifiAccessClient client, ILogger logger)
     try
     {
         logger.LogInformation("Fetching NFC cards...");
-        var cards = await client.Credentials.GetNfcCardsAsync();
-        
+        var cardsResponse = await client.Credentials.GetNfcCardsAsync();
+        var cards = cardsResponse.Items;
+
         if (!cards.Any())
         {
             Console.WriteLine("No NFC cards found.");
             return;
         }
 
-        Console.WriteLine($"\nFound {cards.Count()} NFC cards:\n");
+        Console.WriteLine($"\nFound {cards.Count} NFC cards (Page {cardsResponse.Page} of {cardsResponse.TotalPages}):\n");
         
         foreach (var card in cards)
         {
@@ -1018,9 +1026,10 @@ async Task AssignExistingNfcCard(IUnifiAccessClient client, ILogger logger)
     
     // List available cards
     logger.LogInformation("Fetching available NFC cards...");
-    var cards = await client.Credentials.GetNfcCardsAsync();
+    var cardsResponse = await client.Credentials.GetNfcCardsAsync();
+    var cards = cardsResponse.Items;
     var availableCards = cards.Where(c => c.User == null).ToList();
-    
+
     if (!availableCards.Any())
     {
         Console.WriteLine("No unassigned NFC cards available.");
@@ -1388,8 +1397,8 @@ async Task CompleteOnboardingWorkflow(IUnifiAccessClient client, ILogger logger)
         }
         
         logger.LogInformation("Fetching user groups...");
-        var groups = await client.UserGroups.GetUserGroupsAsync();
-        var groupList = groups.ToList();
+        var groupsResponse = await client.UserGroups.GetUserGroupsAsync();
+        var groupList = groupsResponse.Items;
         
         if (!groupList.Any())
         {
@@ -1538,8 +1547,9 @@ async Task BulkImportUsersAndCards(IUnifiAccessClient client, ILogger logger)
     {
         // Step 1: Create/Get User Groups
         var groupMap = new Dictionary<string, string>(); // groupName -> groupId
-        var existingGroups = await client.UserGroups.GetUserGroupsAsync();
-        
+        var existingGroupsResponse = await client.UserGroups.GetUserGroupsAsync();
+        var existingGroups = existingGroupsResponse.Items;
+
         foreach (var groupName in importData.Select(d => d.groupName).Distinct())
         {
             var existingGroup = existingGroups.FirstOrDefault(g => g.Name.Equals(groupName, StringComparison.OrdinalIgnoreCase));
@@ -1671,12 +1681,12 @@ async Task BulkImportUsersAndCards(IUnifiAccessClient client, ILogger logger)
 async Task ListDevices(IUnifiAccessClient client, ILogger logger)
 {
     Console.WriteLine("\n--- List Devices ---");
-    
+
     try
     {
         logger.LogInformation("Fetching devices...");
         var devices = await client.Devices.GetDevicesAsync();
-        
+
         if (!devices.Any())
         {
             Console.WriteLine("No devices found.");
@@ -1684,7 +1694,7 @@ async Task ListDevices(IUnifiAccessClient client, ILogger logger)
         }
 
         Console.WriteLine($"\nFound {devices.Count()} devices:\n");
-        
+
         foreach (var device in devices)
         {
             Console.WriteLine($"• {device.Name}");
@@ -1699,4 +1709,170 @@ async Task ListDevices(IUnifiAccessClient client, ILogger logger)
         logger.LogError(ex, "Failed to list devices");
         Console.WriteLine($"Error listing devices: {ex.Message}");
     }
+}
+
+async Task ExportLastActivityReport(IUnifiAccessClient client, ILogger logger)
+{
+    Console.WriteLine("\n--- Export Last Activity Report (CSV) ---");
+
+    try
+    {
+        // Fetch all users first
+        logger.LogInformation("Fetching all users...");
+        var allUsers = await client.Users.GetUsersAsync();
+        var userList = allUsers.ToList();
+
+        Console.WriteLine($"Found {userList.Count} users. Fetching all door opening logs...");
+
+        // Fetch door opening logs (without date restriction for now to get all activity)
+        var logRequest = new SystemLogRequest
+        {
+            Topic = SystemLogTopic.DoorOpenings
+        };
+
+        // Dictionary to track last activity per user
+        var userLastActivity = new Dictionary<string, DateTime>();
+
+        // Fetch logs in pages
+        int pageNum = 1;
+        const int pageSize = 100;
+        SystemLogQueryResponse logResponse;
+        var totalLogs = 0;
+
+        do
+        {
+            logResponse = await client.SystemLogs.GetSystemLogsAsync(logRequest, pageNum, pageSize);
+            totalLogs += logResponse.Hits.Count;
+
+            Console.Write($"Processing page {pageNum} ({logResponse.Hits.Count} logs)...");
+
+            foreach (var entry in logResponse.Hits)
+            {
+                // Only process user-type actors with successful access
+                if (entry.Source.Actor.Type == "user" &&
+                    !string.IsNullOrEmpty(entry.Source.Actor.Id) &&
+                    entry.Source.Event.Result == "ACCESS")
+                {
+                    var userId = entry.Source.Actor.Id;
+
+                    // Parse timestamp
+                    if (DateTime.TryParse(entry.Timestamp, out var activityTime))
+                    {
+                        // Keep only the most recent activity for each user
+                        if (!userLastActivity.ContainsKey(userId) || activityTime > userLastActivity[userId])
+                        {
+                            userLastActivity[userId] = activityTime;
+                        }
+                    }
+                }
+            }
+
+            Console.WriteLine($" Found {userLastActivity.Count} unique active users so far.");
+            pageNum++;
+
+        } while (pageNum <= (logResponse.Total + pageSize - 1) / pageSize && logResponse.Hits.Count > 0);
+
+        Console.WriteLine($"\nProcessed {totalLogs} total log entries.");
+        Console.WriteLine($"Generating CSV report for {userList.Count} users...");
+
+        // Create CSV content
+        var csvBuilder = new StringBuilder();
+        csvBuilder.AppendLine("Name,Email,Employee ID,Last Activity,Days Since Activity,Status");
+
+        // Prepare user activity data
+        var userActivityData = new List<(UserResponse user, DateTime? lastActivity, int daysSince)>();
+
+        foreach (var user in userList)
+        {
+            DateTime? lastActivity = null;
+            int daysSince = -1;
+
+            if (userLastActivity.TryGetValue(user.Id, out var activity))
+            {
+                lastActivity = activity;
+                daysSince = (int)(DateTime.UtcNow - activity).TotalDays;
+            }
+
+            userActivityData.Add((user, lastActivity, daysSince));
+        }
+
+        // Sort by last activity (oldest first), users with no activity go to the end
+        var sortedUsers = userActivityData
+            .OrderBy(x => x.lastActivity.HasValue ? 0 : 1) // Users with activity first
+            .ThenBy(x => x.lastActivity) // Then by oldest activity first
+            .ToList();
+
+        // Generate CSV rows
+        foreach (var (user, lastActivity, daysSince) in sortedUsers)
+        {
+            var name = $"{user.FirstName} {user.LastName}";
+            var email = user.UserEmail ?? "N/A";
+            var employeeId = user.EmployeeNumber ?? "N/A";
+            var lastActivityStr = lastActivity?.ToString("yyyy-MM-dd HH:mm:ss UTC") ?? "No activity";
+            var daysSinceStr = daysSince >= 0 ? daysSince.ToString() : "N/A";
+            var status = user.Status ?? "Unknown";
+
+            // Escape CSV values that contain commas
+            name = EscapeCsvValue(name);
+            email = EscapeCsvValue(email);
+            employeeId = EscapeCsvValue(employeeId);
+            lastActivityStr = EscapeCsvValue(lastActivityStr);
+            status = EscapeCsvValue(status);
+
+            csvBuilder.AppendLine($"{name},{email},{employeeId},{lastActivityStr},{daysSinceStr},{status}");
+        }
+
+        // Save CSV to file
+        var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+        var fileName = $"LastActivityReport_{timestamp}.csv";
+        var filePath = Path.Combine(Environment.CurrentDirectory, fileName);
+
+        await File.WriteAllTextAsync(filePath, csvBuilder.ToString());
+
+        // Display summary
+        var usersWithActivity = userActivityData.Count(x => x.lastActivity.HasValue);
+        var usersWithoutActivity = userList.Count - usersWithActivity;
+
+        Console.WriteLine($"\n✅ Last Activity Report exported successfully!");
+        Console.WriteLine($"   File: {filePath}");
+        Console.WriteLine($"   Total Users: {userList.Count}");
+        Console.WriteLine($"   Users with Activity: {usersWithActivity}");
+        Console.WriteLine($"   Users without Activity: {usersWithoutActivity}");
+        Console.WriteLine($"   Report covers: All available activity logs");
+
+        if (usersWithActivity > 0)
+        {
+            var oldestActivity = userActivityData
+                .Where(x => x.lastActivity.HasValue)
+                .Min(x => x.lastActivity!.Value);
+            var newestActivity = userActivityData
+                .Where(x => x.lastActivity.HasValue)
+                .Max(x => x.lastActivity!.Value);
+
+            Console.WriteLine($"   Activity Range: {oldestActivity:yyyy-MM-dd HH:mm} to {newestActivity:yyyy-MM-dd HH:mm}");
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Failed to export last activity report");
+        Console.WriteLine($"Error exporting report: {ex.Message}");
+    }
+}
+
+static string EscapeCsvValue(string value)
+{
+    if (string.IsNullOrEmpty(value))
+    {
+        return value;
+    }
+
+    // If the value contains comma, quote, or newline, wrap it in quotes
+    if (value.Contains(',') || value.Contains('"') || value.Contains('\n') || value.Contains('\r'))
+    {
+        // Escape quotes by doubling them
+        value = value.Replace("\"", "\"\"");
+        return $"\"{value}\"";
+    }
+
+    return value;
 }

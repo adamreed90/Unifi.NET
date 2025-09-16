@@ -1,3 +1,4 @@
+using Unifi.NET.Access.Models;
 using Unifi.NET.Access.Models.UserGroups;
 using Unifi.NET.Access.Models.Users;
 
@@ -22,8 +23,8 @@ public interface IUserGroupService
     /// <param name="pageNum">Page number for pagination.</param>
     /// <param name="pageSize">Number of items per page.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>List of user groups.</returns>
-    Task<IEnumerable<UserGroupResponse>> GetUserGroupsAsync(int? pageNum = null, int? pageSize = null, CancellationToken cancellationToken = default);
+    /// <returns>Paginated list of user groups.</returns>
+    Task<PaginatedResponse<List<UserGroupResponse>>> GetUserGroupsAsync(int? pageNum = null, int? pageSize = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Fetches a user group by ID.
@@ -72,8 +73,8 @@ public interface IUserGroupService
     /// <param name="pageNum">Page number for pagination.</param>
     /// <param name="pageSize">Number of items per page.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>List of users in the group.</returns>
-    Task<IEnumerable<UserResponse>> GetUsersInGroupAsync(string groupId, int? pageNum = null, int? pageSize = null, CancellationToken cancellationToken = default);
+    /// <returns>Paginated list of users in the group.</returns>
+    Task<PaginatedResponse<List<UserResponse>>> GetUsersInGroupAsync(string groupId, int? pageNum = null, int? pageSize = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Searches user groups by name.

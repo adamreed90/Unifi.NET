@@ -1,4 +1,5 @@
 using Unifi.NET.Access.Models.Credentials;
+using Unifi.NET.Access.Models;
 
 namespace Unifi.NET.Access.Services;
 
@@ -43,8 +44,8 @@ public interface ICredentialService
     /// <param name="pageNum">Page number for pagination.</param>
     /// <param name="pageSize">Number of items per page.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>List of NFC cards.</returns>
-    Task<IEnumerable<NfcCardResponse>> GetNfcCardsAsync(int? pageNum = null, int? pageSize = null, CancellationToken cancellationToken = default);
+    /// <returns>Paginated list of NFC cards.</returns>
+    Task<PaginatedResponse<List<NfcCardResponse>>> GetNfcCardsAsync(int? pageNum = null, int? pageSize = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Fetches NFC card details by token.

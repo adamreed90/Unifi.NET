@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using RestSharp;
 using Unifi.NET.Access.Configuration;
+using Unifi.NET.Access.Exceptions;
 using Unifi.NET.Access.Models;
 using Unifi.NET.Access.Models.AccessPolicies;
 using Unifi.NET.Access.Models.Credentials;
@@ -112,11 +113,54 @@ public sealed class UserService : BaseService, IUserService
     }
     
     /// <inheritdoc />
-    public async Task<IEnumerable<UserResponse>> GetUsersAsync(int pageNum, int pageSize, CancellationToken cancellationToken = default)
+    public async Task<PaginatedResponse<List<UserResponse>>> GetUsersAsync(int pageNum, int pageSize, CancellationToken cancellationToken = default)
     {
         var url = $"/api/v1/developer/users?expand[]=access_policy&page_num={pageNum}&page_size={pageSize}";
-        var users = await GetAsync<List<UserResponse>>(url, cancellationToken);
-        return users ?? new List<UserResponse>();
+
+        // Use direct API call to get pagination info
+        var apiRequest = CreateRequest(url, Method.Get);
+        var response = await Client.ExecuteAsync(apiRequest, cancellationToken);
+
+        if (!response.IsSuccessful)
+        {
+            var statusCode = (int)response.StatusCode;
+            var errorMessage = response.ErrorMessage ?? response.Content ?? "Unknown error";
+            throw new UnifiAccessException($"API request failed: {errorMessage}", "API_ERROR", statusCode);
+        }
+
+        if (string.IsNullOrEmpty(response.Content))
+        {
+            return new PaginatedResponse<List<UserResponse>>
+            {
+                Items = new List<UserResponse>(),
+                Page = pageNum,
+                PageSize = pageSize,
+                Total = 0
+            };
+        }
+
+        // Deserialize using source-generated JSON
+        var jsonTypeInfo = (JsonTypeInfo<UnifiApiResponse<List<UserResponse>>>)_jsonOptions.GetTypeInfo(typeof(UnifiApiResponse<List<UserResponse>>));
+        var apiResponse = JsonSerializer.Deserialize(response.Content, jsonTypeInfo);
+
+        if (apiResponse == null)
+        {
+            throw new UnifiAccessException("Response data is null", "NULL_RESPONSE");
+        }
+
+        // Check for API-level errors
+        if (apiResponse.Code != "SUCCESS")
+        {
+            throw UnifiErrorCodeMapper.MapError(apiResponse.Code, apiResponse.Message, (int?)response.StatusCode);
+        }
+
+        return new PaginatedResponse<List<UserResponse>>
+        {
+            Items = apiResponse.Data ?? new List<UserResponse>(),
+            Page = apiResponse.Pagination?.PageNum ?? pageNum,
+            PageSize = apiResponse.Pagination?.PageSize ?? pageSize,
+            Total = apiResponse.Pagination?.Total ?? 0
+        };
     }
 
     /// <inheritdoc />
