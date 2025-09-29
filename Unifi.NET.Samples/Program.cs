@@ -877,22 +877,61 @@ async Task RegisterNfcCardCore(IUnifiAccessClient client, ILogger logger, string
             Console.WriteLine($"\n✓ NFC card successfully {(forceAssign ? "reassigned" : "assigned")} to user!");
             Console.WriteLine($"  Card Token: {detectedCardId}");
         }
-        catch (UnifiAccessException ex) when (ex.ErrorCode == "CODE_CREDS_NFC_CARD_IS_PROVISION" && !forceAssign)
+        catch (UnifiAccessException ex) when ((ex.ErrorCode == "CODE_CREDS_NFC_CARD_IS_PROVISION" || ex.ErrorCode == "CODE_CREDS_NFC_HAS_BIND_USER") && !forceAssign)
         {
-            // Card is already enrolled and we didn't force
-            Console.WriteLine($"\n⚠️  Card is already enrolled to another user.");
-            Console.Write("Do you want to FORCE reassignment? (Y/N): ");
-            
-            if (Console.ReadLine()?.Trim()?.ToUpperInvariant() == "Y")
+            // Card is already enrolled to another user and we didn't force assign
+            // Fetch card details to find out who currently owns it
+            try
             {
-                assignRequest.ForceAdd = true;
-                await client.Users.AssignNfcCardToUserAsync(userId, assignRequest);
-                Console.WriteLine($"\n✓ NFC card successfully reassigned to user!");
-                Console.WriteLine($"  Card Token: {detectedCardId}");
+                var cardDetails = await client.Credentials.GetNfcCardAsync(detectedCardId);
+
+                Console.WriteLine($"\n⚠️  This card is already assigned to another user:");
+                if (cardDetails.User != null)
+                {
+                    Console.WriteLine($"   Current Owner: {cardDetails.User.FirstName} {cardDetails.User.LastName}");
+                    Console.WriteLine($"   User ID: {cardDetails.User.Id}");
+                }
+                else if (!string.IsNullOrEmpty(cardDetails.UserId))
+                {
+                    Console.WriteLine($"   Current Owner ID: {cardDetails.UserId}");
+                }
+                Console.WriteLine($"   Card Status: {cardDetails.Status}");
+                Console.WriteLine($"   Card Display ID: {cardDetails.DisplayId}");
+
+                Console.Write("\nDo you want to FORCE reassignment to {0}? (Y/N): ", userName);
+
+                if (Console.ReadLine()?.Trim()?.ToUpperInvariant() == "Y")
+                {
+                    assignRequest.ForceAdd = true;
+                    await client.Users.AssignNfcCardToUserAsync(userId, assignRequest);
+                    Console.WriteLine($"\n✓ NFC card successfully reassigned to {userName}!");
+                    Console.WriteLine($"  Card Token: {detectedCardId}");
+                }
+                else
+                {
+                    Console.WriteLine("✗ Assignment cancelled.");
+                    await client.Credentials.CancelNfcEnrollmentSessionAsync(session.SessionId);
+                }
             }
-            else
+            catch (Exception fetchEx)
             {
-                Console.WriteLine("✗ Assignment cancelled.");
+                // If we can't fetch card details, still allow force assignment
+                logger.LogWarning(fetchEx, "Could not fetch card details");
+                Console.WriteLine($"\n⚠️  Card is already assigned to another user (unable to fetch owner details).");
+                Console.Write("Do you want to FORCE reassignment? (Y/N): ");
+
+                if (Console.ReadLine()?.Trim()?.ToUpperInvariant() == "Y")
+                {
+                    assignRequest.ForceAdd = true;
+                    await client.Users.AssignNfcCardToUserAsync(userId, assignRequest);
+                    Console.WriteLine($"\n✓ NFC card successfully reassigned!");
+                    Console.WriteLine($"  Card Token: {detectedCardId}");
+                }
+                else
+                {
+                    Console.WriteLine("✗ Assignment cancelled.");
+                    await client.Credentials.CancelNfcEnrollmentSessionAsync(session.SessionId);
+                }
             }
         }
     }
