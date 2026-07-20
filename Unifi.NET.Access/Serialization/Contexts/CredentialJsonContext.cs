@@ -34,6 +34,6 @@ namespace Unifi.NET.Access.Serialization.Contexts;
 [JsonSerializable(typeof(UnifiApiResponse<NfcCardResponse>))]
 [JsonSerializable(typeof(UnifiApiResponse<List<NfcCardResponse>>))]
 [JsonSerializable(typeof(UnifiApiResponse<List<ImportNfcCardsResponse>>))]
-internal partial class CredentialJsonContext : JsonSerializerContext
+internal sealed partial class CredentialJsonContext : JsonSerializerContext
 {
 }

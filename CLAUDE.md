@@ -2,28 +2,17 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Linear Configuration
+## Work Tracking
+
+Work is tracked in GitHub (issues and pull requests) on [iamadamreed/Unifi.NET](https://github.com/iamadamreed/Unifi.NET). Use the `gh` CLI for GitHub operations.
 
 ```yaml
-LINEAR_PROJECT_ID: "62b16559-5a98-4a38-8980-bcfc96cc72f1"
-LINEAR_PROJECT_NAME: "Unifi.NET"
-LINEAR_TEAM_ID: "7fe71b21-cd2a-4776-98ef-8814b2921b8c"
-LINEAR_TEAM_NAME: "Spire Recovery Solutions"
-
-# Status IDs
-LINEAR_STATUS_ON_DECK: "2ec690d5-e27e-45dc-bf26-9201f3b2e276"
-LINEAR_STATUS_IN_PROGRESS: "d171b2d5-87f8-4c4e-b7d0-a13dd5bc6689"
-LINEAR_STATUS_BLOCKED: "8a88d533-e078-425a-b1f1-ad93cad81ef2"
-LINEAR_STATUS_IN_REVIEW: "6f1d6fc0-4e3c-42da-903a-85fcc3ea83e9"
-LINEAR_STATUS_DONE: "cf75dc3e-2542-4918-b2da-980fac469533"
-
-# Branch Configuration
 DEFAULT_BRANCH: "main"
 ```
 
 ## Project Overview
 
-Unifi.NET is a collection of .NET 9 SDKs for Ubiquiti UniFi APIs. The solution wraps UniFi service APIs (Access, Network, Protect, Site Manager) with strongly-typed, Native AOT-compatible client libraries.
+Unifi.NET is a collection of .NET 10 SDKs for Ubiquiti UniFi APIs. The solution wraps UniFi service APIs (Access, Network, Protect, Site Manager) with strongly-typed, Native AOT-compatible client libraries.
 
 ## Solution Structure
 
@@ -39,7 +28,7 @@ Unifi.NET.sln
 ├── Unifi.NET.Samples/           # Sample console application
 ├── Directory.Build.props        # Shared MSBuild properties
 ├── Directory.Packages.props     # Central package management
-├── global.json                  # .NET SDK version (9.0.100)
+├── global.json                  # .NET SDK version (10.0.100)
 └── .editorconfig               # Code style configuration
 ```
 
@@ -201,11 +190,15 @@ NuGet packages follow folder structure:
 
 Central package versions (Directory.Packages.props):
 - **RestSharp**: 112.1.0
-- **Microsoft.Extensions.Http.Resilience**: 9.0.0
-- **System.Text.Json**: 9.0.0
-- **xunit**: 2.9.2
+- **Microsoft.Extensions.Http.Resilience**: 10.0.0
+- **Microsoft.OpenApi**: 2.11.0 (pinned for GHSA-v5pm-xwqc-g5wc)
+- **Microsoft.NET.Test.Sdk**: 18.8.1
+- **xunit**: 2.9.3
 - **FluentAssertions**: 6.12.2
 - **Moq**: 4.20.72
+- **Microsoft.CodeAnalysis.NetAnalyzers**: 10.0.0
+
+Note: `System.Text.Json` is framework-provided in .NET 10, so it no longer has an explicit `PackageVersion` entry.
 
 ## API Implementation Workflow
 

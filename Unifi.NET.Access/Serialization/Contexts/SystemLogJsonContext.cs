@@ -25,6 +25,6 @@ namespace Unifi.NET.Access.Serialization.Contexts;
 [JsonSerializable(typeof(List<SystemLogResource>))]
 [JsonSerializable(typeof(UnifiApiResponse<SystemLogResponse>))]
 [JsonSerializable(typeof(UnifiApiResponse<SystemLogResourceResponse>))]
-internal partial class SystemLogJsonContext : JsonSerializerContext
+internal sealed partial class SystemLogJsonContext : JsonSerializerContext
 {
 }

@@ -18,6 +18,6 @@ namespace Unifi.NET.Access.Serialization.Contexts;
 [JsonSerializable(typeof(List<List<DeviceResponse>>))]
 // API wrapper types
 [JsonSerializable(typeof(UnifiApiResponse<List<List<DeviceResponse>>>))]
-internal partial class DeviceJsonContext : JsonSerializerContext
+internal sealed partial class DeviceJsonContext : JsonSerializerContext
 {
 }

@@ -4,7 +4,7 @@ A comprehensive collection of .NET SDKs for interacting with Ubiquiti UniFi APIs
 
 [![NuGet](https://img.shields.io/nuget/v/Unifi.NET.Access.svg)](https://www.nuget.org/packages/Unifi.NET.Access/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![.NET](https://img.shields.io/badge/.NET-9.0-512BD4)](https://dotnet.microsoft.com/download)
+[![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)](https://dotnet.microsoft.com/download)
 
 ## 📦 Available Packages
 
@@ -30,13 +30,13 @@ A comprehensive collection of .NET SDKs for interacting with Ubiquiti UniFi APIs
 
 ## 📋 Prerequisites
 
-- .NET 9.0 or later
+- .NET 10.0 or later
 - UniFi Console with the respective service installed
 - API Token from UniFi Portal (for authentication)
 - Network access to your UniFi Console (default port: 12445 for Access)
 
 ### Native AOT Requirements
-- .NET 9 SDK for building
+- .NET 10 SDK for building
 - Target platform runtime identifier (e.g., `linux-x64`, `win-x64`, `osx-arm64`)
 - No additional runtime dependencies needed for deployment
 
@@ -129,7 +129,7 @@ var users = await accessClient.Users.GetAllAsync();
 
 ### Native AOT Deployment
 
-The SDKs are designed for full Native AOT compatibility in .NET 9:
+The SDKs are designed for full Native AOT compatibility in .NET 10:
 
 ```xml
 <!-- In your project file -->
@@ -209,7 +209,7 @@ Unifi.NET/
 
 ### Native AOT Design Principles
 
-All SDKs follow .NET 9 Native AOT best practices:
+All SDKs follow .NET 10 Native AOT best practices:
 
 #### ✅ **Fully Compatible Components**
 - **System.Text.Json** with source generators (no reflection)

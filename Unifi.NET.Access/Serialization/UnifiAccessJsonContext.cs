@@ -12,7 +12,7 @@ namespace Unifi.NET.Access.Serialization;
 public static class UnifiAccessJsonContext
 {
     private static IJsonTypeInfoResolver? _combined;
-    private static readonly object _lock = new();
+    private static readonly Lock _lock = new();
 
     /// <summary>
     /// Gets the combined type info resolver for all UniFi Access types.

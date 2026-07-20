@@ -24,6 +24,6 @@ namespace Unifi.NET.Access.Serialization.Contexts;
 [JsonSerializable(typeof(UnifiApiResponse<List<DoorResponse>>))]
 [JsonSerializable(typeof(UnifiApiResponse<DoorLockingRuleResponse>))]
 [JsonSerializable(typeof(UnifiApiResponse<DoorEmergencyStatusResponse>))]
-internal partial class DoorJsonContext : JsonSerializerContext
+internal sealed partial class DoorJsonContext : JsonSerializerContext
 {
 }

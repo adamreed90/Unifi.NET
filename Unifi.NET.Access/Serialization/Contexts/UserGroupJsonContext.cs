@@ -26,6 +26,6 @@ namespace Unifi.NET.Access.Serialization.Contexts;
 [JsonSerializable(typeof(UnifiApiResponse<UserGroupResponse>))]
 [JsonSerializable(typeof(UnifiApiResponse<List<UserGroupResponse>>))]
 [JsonSerializable(typeof(UnifiApiResponse<List<ImportUserGroupsResponse>>))]
-internal partial class UserGroupJsonContext : JsonSerializerContext
+internal sealed partial class UserGroupJsonContext : JsonSerializerContext
 {
 }

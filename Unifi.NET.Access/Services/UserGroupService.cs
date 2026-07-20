@@ -63,7 +63,7 @@ public sealed class UserGroupService : BaseService, IUserGroupService
         {
             return new PaginatedResponse<List<UserGroupResponse>>
             {
-                Items = new List<UserGroupResponse>(),
+                Items = [],
                 Page = pageNum ?? 1,
                 PageSize = pageSize ?? 25,
                 Total = 0
@@ -87,7 +87,7 @@ public sealed class UserGroupService : BaseService, IUserGroupService
 
         return new PaginatedResponse<List<UserGroupResponse>>
         {
-            Items = apiResponse.Data ?? new List<UserGroupResponse>(),
+            Items = apiResponse.Data ?? [],
             Page = apiResponse.Pagination?.PageNum ?? pageNum ?? 1,
             PageSize = apiResponse.Pagination?.PageSize ?? pageSize ?? 25,
             Total = apiResponse.Pagination?.Total ?? 0
@@ -176,7 +176,7 @@ public sealed class UserGroupService : BaseService, IUserGroupService
         {
             return new PaginatedResponse<List<UserResponse>>
             {
-                Items = new List<UserResponse>(),
+                Items = [],
                 Page = pageNum ?? 1,
                 PageSize = pageSize ?? 25,
                 Total = 0
@@ -200,7 +200,7 @@ public sealed class UserGroupService : BaseService, IUserGroupService
 
         return new PaginatedResponse<List<UserResponse>>
         {
-            Items = apiResponse.Data ?? new List<UserResponse>(),
+            Items = apiResponse.Data ?? [],
             Page = apiResponse.Pagination?.PageNum ?? pageNum ?? 1,
             PageSize = apiResponse.Pagination?.PageSize ?? pageSize ?? 25,
             Total = apiResponse.Pagination?.Total ?? 0

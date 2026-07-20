@@ -132,7 +132,7 @@ public sealed class UserService : BaseService, IUserService
         {
             return new PaginatedResponse<List<UserResponse>>
             {
-                Items = new List<UserResponse>(),
+                Items = [],
                 Page = pageNum,
                 PageSize = pageSize,
                 Total = 0
@@ -156,7 +156,7 @@ public sealed class UserService : BaseService, IUserService
 
         return new PaginatedResponse<List<UserResponse>>
         {
-            Items = apiResponse.Data ?? new List<UserResponse>(),
+            Items = apiResponse.Data ?? [],
             Page = apiResponse.Pagination?.PageNum ?? pageNum,
             PageSize = apiResponse.Pagination?.PageSize ?? pageSize,
             Total = apiResponse.Pagination?.Total ?? 0
