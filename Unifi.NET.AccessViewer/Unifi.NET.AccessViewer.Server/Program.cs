@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http.HttpResults;
 using Unifi.NET.Access;
 using Unifi.NET.Access.Configuration;
 using Unifi.NET.Access.Models.SystemLogs;
@@ -55,11 +56,13 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 // Map API endpoints
-app.MapGet("/api/users/search", async (string? employeeNumber, IUnifiAccessClient client) =>
+var api = app.MapGroup("/api");
+
+api.MapGet("/users/search", async Task<Results<Ok<UserSearchResult>, BadRequest<string>, NotFound<string>, ProblemHttpResult>> (string? employeeNumber, IUnifiAccessClient client) =>
 {
     if (string.IsNullOrWhiteSpace(employeeNumber))
     {
-        return Results.BadRequest("Employee number is required");
+        return TypedResults.BadRequest("Employee number is required");
     }
 
     try
@@ -67,13 +70,13 @@ app.MapGet("/api/users/search", async (string? employeeNumber, IUnifiAccessClien
         // Use search API for much faster response
         var users = await client.Users.SearchUsersAsync(employeeNumber);
         var user = users.FirstOrDefault(u => u.EmployeeNumber == employeeNumber);
-        
+
         if (user == null)
         {
-            return Results.NotFound($"No user found with employee number: {employeeNumber}");
+            return TypedResults.NotFound($"No user found with employee number: {employeeNumber}");
         }
 
-        return Results.Ok(new UserSearchResult
+        return TypedResults.Ok(new UserSearchResult
         {
             Id = user.Id,
             FirstName = user.FirstName,
@@ -85,12 +88,12 @@ app.MapGet("/api/users/search", async (string? employeeNumber, IUnifiAccessClien
     }
     catch (Exception ex)
     {
-        return Results.Problem($"Error searching users: {ex.Message}");
+        return TypedResults.Problem($"Error searching users: {ex.Message}");
     }
 })
 .WithName("SearchUser");
 
-app.MapPost("/api/access-logs", async (AccessLogRequest request, IUnifiAccessClient client) =>
+api.MapPost("/access-logs", async Task<Results<Ok<AccessLogResponse>, ProblemHttpResult>> (AccessLogRequest request, IUnifiAccessClient client) =>
 {
     try
     {
@@ -103,8 +106,8 @@ app.MapPost("/api/access-logs", async (AccessLogRequest request, IUnifiAccessCli
         };
 
         var response = await client.SystemLogs.GetSystemLogsAsync(
-            logRequest, 
-            request.PageNum ?? 1, 
+            logRequest,
+            request.PageNum ?? 1,
             request.PageSize ?? 50);
 
         var logs = response.Hits.Select(hit => new AccessLogEntry
@@ -121,7 +124,7 @@ app.MapPost("/api/access-logs", async (AccessLogRequest request, IUnifiAccessCli
             BuildingName = hit.Source.Target?.FirstOrDefault(t => t.Type == "building")?.DisplayName
         }).ToList();
 
-        return Results.Ok(new AccessLogResponse
+        return TypedResults.Ok(new AccessLogResponse
         {
             Logs = logs,
             TotalCount = response.Total,
@@ -130,7 +133,7 @@ app.MapPost("/api/access-logs", async (AccessLogRequest request, IUnifiAccessCli
     }
     catch (Exception ex)
     {
-        return Results.Problem($"Error fetching access logs: {ex.Message}");
+        return TypedResults.Problem($"Error fetching access logs: {ex.Message}");
     }
 })
 .WithName("GetAccessLogs");
