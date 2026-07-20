@@ -12,7 +12,7 @@ DEFAULT_BRANCH: "main"
 
 ## Project Overview
 
-Unifi.NET is a collection of .NET 9 SDKs for Ubiquiti UniFi APIs. The solution wraps UniFi service APIs (Access, Network, Protect, Site Manager) with strongly-typed, Native AOT-compatible client libraries.
+Unifi.NET is a collection of .NET 10 SDKs for Ubiquiti UniFi APIs. The solution wraps UniFi service APIs (Access, Network, Protect, Site Manager) with strongly-typed, Native AOT-compatible client libraries.
 
 ## Solution Structure
 
@@ -28,7 +28,7 @@ Unifi.NET.sln
 ├── Unifi.NET.Samples/           # Sample console application
 ├── Directory.Build.props        # Shared MSBuild properties
 ├── Directory.Packages.props     # Central package management
-├── global.json                  # .NET SDK version (9.0.100)
+├── global.json                  # .NET SDK version (10.0.100)
 └── .editorconfig               # Code style configuration
 ```
 
@@ -190,11 +190,15 @@ NuGet packages follow folder structure:
 
 Central package versions (Directory.Packages.props):
 - **RestSharp**: 112.1.0
-- **Microsoft.Extensions.Http.Resilience**: 9.0.0
-- **System.Text.Json**: 9.0.0
-- **xunit**: 2.9.2
+- **Microsoft.Extensions.Http.Resilience**: 10.0.0
+- **Microsoft.OpenApi**: 2.11.0 (pinned for GHSA-v5pm-xwqc-g5wc)
+- **Microsoft.NET.Test.Sdk**: 18.8.1
+- **xunit**: 2.9.3
 - **FluentAssertions**: 6.12.2
 - **Moq**: 4.20.72
+- **Microsoft.CodeAnalysis.NetAnalyzers**: 10.0.0
+
+Note: `System.Text.Json` is framework-provided in .NET 10, so it no longer has an explicit `PackageVersion` entry.
 
 ## API Implementation Workflow
 

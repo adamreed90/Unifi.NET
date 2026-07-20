@@ -15,7 +15,7 @@ The UniFi Access sample is a console application that demonstrates key features 
 
 1. **UniFi Access Console**: You need access to a UniFi Access console (v1.9.1 or later)
 2. **API Token**: Generate an API token from your UniFi Access console
-3. **.NET 9 SDK**: Install the .NET 9 SDK from [dotnet.microsoft.com](https://dotnet.microsoft.com)
+3. **.NET 10 SDK**: Install the .NET 10 SDK from [dotnet.microsoft.com](https://dotnet.microsoft.com)
 
 ### Getting Started
 
