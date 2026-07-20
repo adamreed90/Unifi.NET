@@ -29,6 +29,6 @@ public sealed class DeviceService : BaseService, IDeviceService
             return devices.SelectMany(list => list ?? new List<DeviceResponse>());
         }
 
-        return [];
+        return new List<DeviceResponse>();
     }
 }

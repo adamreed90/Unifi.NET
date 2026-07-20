@@ -62,7 +62,7 @@ public sealed class UserService : BaseService, IUserService
         
         if (!countResponse.IsSuccessful || string.IsNullOrEmpty(countResponse.Content))
         {
-            return [];
+            return new List<UserResponse>();
         }
         
         // Parse to get total count
@@ -73,7 +73,7 @@ public sealed class UserService : BaseService, IUserService
         {
             // Fallback to old method if pagination is not available
             var users = await GetAsync<List<UserResponse>>("/api/v1/developer/users?expand[]=access_policy", cancellationToken);
-            return users ?? [];
+            return users ?? new List<UserResponse>();
         }
         
         var total = paginatedResponse.Pagination.Total;
@@ -215,7 +215,7 @@ public sealed class UserService : BaseService, IUserService
         var user = await GetUserAsync(userId, cancellationToken);
         if (user.AccessPolicies == null)
         {
-            return [];
+            return new List<AccessPolicyResponse>();
         }
 
         // Convert AccessPolicyInfo to AccessPolicyResponse

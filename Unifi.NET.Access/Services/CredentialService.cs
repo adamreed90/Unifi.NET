@@ -157,6 +157,6 @@ public sealed class CredentialService : BaseService, ICredentialService
         var jsonTypeInfo = (JsonTypeInfo<UnifiApiResponse<List<ImportNfcCardsResponse>>>)_jsonOptions.GetTypeInfo(typeof(UnifiApiResponse<List<ImportNfcCardsResponse>>));
         var apiResponse = JsonSerializer.Deserialize(response.Content ?? "{}", jsonTypeInfo);
         
-        return apiResponse?.Data ?? [];
+        return apiResponse?.Data ?? new List<ImportNfcCardsResponse>();
     }
 }

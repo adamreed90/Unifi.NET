@@ -156,11 +156,11 @@ public class UnifiAccessJsonContextTests
     }
 
     [Fact]
-    public void UserResponse_Serialize_OmitsNullOptionalPropertiesUsingCamelCaseNames()
+    public void UserResponse_Serialize_OmitsNullOptionalPropertiesUsingJsonPropertyNames()
     {
-        // Arrange - the source-generated contexts configure camelCase naming
-        // and omit nulls on write; verify that policy holds through the
-        // combined resolver too.
+        // Arrange - the wire format comes from the explicit [JsonPropertyName]
+        // attributes (snake_case), and nulls are omitted on write; verify that
+        // policy holds through the combined resolver too.
         var user = new UserResponse
         {
             Id = "usr-1",

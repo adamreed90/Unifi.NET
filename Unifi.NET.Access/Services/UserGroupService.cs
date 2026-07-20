@@ -212,7 +212,7 @@ public sealed class UserGroupService : BaseService, IUserGroupService
     {
         ArgumentException.ThrowIfNullOrEmpty(keyword);
         var groups = await GetAsync<List<UserGroupResponse>>($"/api/v1/developer/user_groups/search?keyword={Uri.EscapeDataString(keyword)}", cancellationToken);
-        return groups ?? [];
+        return groups ?? new List<UserGroupResponse>();
     }
 
     /// <inheritdoc />
@@ -235,6 +235,6 @@ public sealed class UserGroupService : BaseService, IUserGroupService
         var jsonTypeInfo = (JsonTypeInfo<UnifiApiResponse<List<ImportUserGroupsResponse>>>)_jsonOptions.GetTypeInfo(typeof(UnifiApiResponse<List<ImportUserGroupsResponse>>));
         var apiResponse = JsonSerializer.Deserialize(response.Content ?? "{}", jsonTypeInfo);
         
-        return apiResponse?.Data ?? [];
+        return apiResponse?.Data ?? new List<ImportUserGroupsResponse>();
     }
 }
