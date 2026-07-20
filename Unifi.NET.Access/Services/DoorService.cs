@@ -28,7 +28,7 @@ public sealed class DoorService : BaseService, IDoorService
     public async Task<IEnumerable<DoorResponse>> GetDoorsAsync(CancellationToken cancellationToken = default)
     {
         var doors = await GetAsync<List<DoorResponse>>("/api/v1/developer/doors", cancellationToken);
-        return doors ?? new List<DoorResponse>();
+        return doors ?? [];
     }
 
     /// <inheritdoc />

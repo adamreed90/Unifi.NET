@@ -20,6 +20,6 @@ namespace Unifi.NET.Access.Serialization.Contexts;
 // API wrapper types
 [JsonSerializable(typeof(UnifiApiResponse<AccessPolicyResponse>))]
 [JsonSerializable(typeof(UnifiApiResponse<List<AccessPolicyResponse>>))]
-internal partial class AccessPolicyJsonContext : JsonSerializerContext
+internal sealed partial class AccessPolicyJsonContext : JsonSerializerContext
 {
 }

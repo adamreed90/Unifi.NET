@@ -84,7 +84,7 @@ public sealed class CredentialService : BaseService, ICredentialService
         {
             return new PaginatedResponse<List<NfcCardResponse>>
             {
-                Items = new List<NfcCardResponse>(),
+                Items = [],
                 Page = pageNum ?? 1,
                 PageSize = pageSize ?? 25,
                 Total = 0
@@ -108,7 +108,7 @@ public sealed class CredentialService : BaseService, ICredentialService
 
         return new PaginatedResponse<List<NfcCardResponse>>
         {
-            Items = apiResponse.Data ?? new List<NfcCardResponse>(),
+            Items = apiResponse.Data ?? [],
             Page = apiResponse.Pagination?.PageNum ?? pageNum ?? 1,
             PageSize = apiResponse.Pagination?.PageSize ?? pageSize ?? 25,
             Total = apiResponse.Pagination?.Total ?? 0
@@ -157,6 +157,6 @@ public sealed class CredentialService : BaseService, ICredentialService
         var jsonTypeInfo = (JsonTypeInfo<UnifiApiResponse<List<ImportNfcCardsResponse>>>)_jsonOptions.GetTypeInfo(typeof(UnifiApiResponse<List<ImportNfcCardsResponse>>));
         var apiResponse = JsonSerializer.Deserialize(response.Content ?? "{}", jsonTypeInfo);
         
-        return apiResponse?.Data ?? new List<ImportNfcCardsResponse>();
+        return apiResponse?.Data ?? [];
     }
 }

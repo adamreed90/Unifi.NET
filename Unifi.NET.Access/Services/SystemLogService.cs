@@ -122,7 +122,7 @@ public sealed class SystemLogService : BaseService, ISystemLogService
             throw new UnifiAccessException($"Failed to export system logs: {response.StatusCode}", "CODE_SYSTEM_ERROR", (int?)response.StatusCode);
         }
 
-        return response.RawBytes ?? Array.Empty<byte>();
+        return response.RawBytes ?? [];
     }
 
     /// <inheritdoc />

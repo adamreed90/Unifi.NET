@@ -51,6 +51,6 @@ public sealed class AccessPolicyService : BaseService, IAccessPolicyService
     public async Task<IEnumerable<AccessPolicyResponse>> GetAccessPoliciesAsync(CancellationToken cancellationToken = default)
     {
         var policies = await GetAsync<List<AccessPolicyResponse>>("/api/v1/developer/access_policies", cancellationToken);
-        return policies ?? new List<AccessPolicyResponse>();
+        return policies ?? [];
     }
 }

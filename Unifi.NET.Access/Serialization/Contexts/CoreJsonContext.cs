@@ -16,6 +16,6 @@ namespace Unifi.NET.Access.Serialization.Contexts;
 [JsonSerializable(typeof(Dictionary<string, string>))]
 [JsonSerializable(typeof(List<string>))]
 [JsonSerializable(typeof(PaginationInfo))]
-internal partial class CoreJsonContext : JsonSerializerContext
+internal sealed partial class CoreJsonContext : JsonSerializerContext
 {
 }
